@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 
 # Constants
 CUSTOMERS_PER_CLOCK = 3  # Stripe limit
-SUBSCRIPTIONS_PER_CUSTOMER = 3
+SUBSCRIPTIONS_PER_CUSTOMER = 1  # Updated: each customer has exactly 1 subscription (iteration 12)
 DEFAULT_NUM_CUSTOMERS = 75
 DEFAULT_SEED = 42
 STATUS_ACTIVE = "active"
@@ -209,7 +209,7 @@ def seed_stripe_data(
 
                 created_customers += 1
                 customer_id = customer.id if hasattr(customer, "id") else "cus_dryrun_001"
-                customer_subscriptions[customer_id] = []
+                customer_subscriptions[customer_id] = None  # Will hold the single subscription ID
 
                 # Determine status for this customer
                 status = determine_customer_status(rng)
@@ -250,33 +250,31 @@ def seed_stripe_data(
                             )
                             continue
 
-                # Create 1-3 subscriptions per customer (deterministic from RNG)
-                num_subs = rng.randint(1, min(3, SUBSCRIPTIONS_PER_CUSTOMER))
-                for sub_idx in range(num_subs):
-                    idempotency_key = f"seed-sub-{customer_id}-{sub_idx}"
-                    subscription = customer_factory.create_subscription(
-                        customer_id=customer_id,
-                        price_id=price_id,
-                        test_clock_id=clock_id,
-                        idempotency_key=idempotency_key,
-                    )
-                    if subscription:
-                        sub_id = subscription.id if hasattr(subscription, "id") else f"sub_dryrun_{sub_idx}"
-                        customer_subscriptions[customer_id].append(sub_id)
-                        logger.info(f"Created subscription {sub_id} for customer {customer_id}")
+                # Create exactly 1 subscription per customer (iteration 12: narrowed from 1-3)
+                idempotency_key = f"seed-sub-{customer_id}"
+                subscription = customer_factory.create_subscription(
+                    customer_id=customer_id,
+                    price_id=price_id,
+                    test_clock_id=clock_id,
+                    idempotency_key=idempotency_key,
+                )
+                if subscription:
+                    sub_id = subscription.id if hasattr(subscription, "id") else "sub_dryrun_001"
+                    customer_subscriptions[customer_id] = sub_id
+                    logger.info(f"Created subscription {sub_id} for customer {customer_id}")
 
-                        # Schedule cancellation for canceled cohort at month 3 or 4
-                        if status == STATUS_CANCELED:
-                            cancel_month = rng.randint(3, 4)
-                            if cancel_month not in cancellations_per_month:
-                                cancellations_per_month[cancel_month] = []
-                            cancellations_per_month[cancel_month].append((customer_id, sub_id))
-                            logger.info(
-                                f"Scheduled subscription {sub_id} for cancellation at month {cancel_month}"
-                            )
-                    else:
-                        error_count += 1
-                        logger.warning(f"Failed to create subscription for customer {customer_id}")
+                    # Schedule cancellation for canceled cohort at month 3 or 4
+                    if status == STATUS_CANCELED:
+                        cancel_month = rng.randint(3, 4)
+                        if cancel_month not in cancellations_per_month:
+                            cancellations_per_month[cancel_month] = []
+                        cancellations_per_month[cancel_month].append((customer_id, sub_id))
+                        logger.info(
+                            f"Scheduled subscription {sub_id} for cancellation at month {cancel_month}"
+                        )
+                else:
+                    error_count += 1
+                    logger.warning(f"Failed to create subscription for customer {customer_id}")
 
             # Advance clock through time (1 month intervals, 6 total)
             try:

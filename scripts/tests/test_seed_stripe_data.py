@@ -249,13 +249,13 @@ class TestIdempotency:
         assert exists is True
 
     def test_subscription_idempotency_key(self, mocker):
-        """C-15: Subscriptions created with idempotency keys."""
+        """C-15: Subscriptions created with idempotency keys (updated iter-12: no sub_idx suffix)."""
         customer_factory = CustomerFactory(api_key="sk_test_key", dry_run=False)
 
         mock_sub_create = mocker.patch("stripe.Subscription.create")
         mock_sub_create.return_value = MagicMock(id="sub_test", status="active")
 
-        idempotency_key = "seed-sub-cus_123-0"
+        idempotency_key = "seed-sub-cus_123"  # iter-12: single subscription per customer, no sub_idx
         customer_factory.create_subscription(
             customer_id="cus_123",
             price_id="price_123",
@@ -659,7 +659,9 @@ class TestOrchestration:
         )
 
         # Verify subscriptions were created
-        assert mock_create_subscription.call_count > 0, "create_subscription should be called"
+        # With iteration 12 narrowing: exactly 1 subscription per customer
+        # 6 customers = 6 subscriptions created
+        assert mock_create_subscription.call_count == 6, "create_subscription should be called once per customer (6 customers = 6 subs)"
         assert result["customer_count"] == 6
 
     def test_orchestration_attaches_payment_methods(self, mocker):

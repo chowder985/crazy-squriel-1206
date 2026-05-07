@@ -174,7 +174,7 @@ python scripts/seed_stripe_data.py --num-customers 3 --cleanup-after
 
 This command:
 1. Creates 1 test clock (batches 3 customers per clock).
-2. Creates 3 customers with subscriptions (1 per batch).
+2. Creates 3 customers with subscriptions (exactly 1 subscription per customer).
 3. Advances the clock through 6 months of time.
 4. Automatically deletes the created clock(s) after completion (`--cleanup-after` flag).
 
