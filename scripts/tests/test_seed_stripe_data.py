@@ -94,24 +94,34 @@ class TestStatusDistribution:
         # Add scripts directory to path
         sys.path.insert(0, str(Path(__file__).parent.parent))
 
-        from seed_stripe_data import calculate_status_distribution
+        from seed_stripe_data import (
+            calculate_status_distribution,
+            ACTIVE_MIN,
+            ACTIVE_MAX,
+            CANCELED_MIN,
+            CANCELED_MAX,
+            PAST_DUE_MIN,
+            PAST_DUE_MAX,
+        )
 
-        # Test with 200 customers to get better distribution stability
-        result = calculate_status_distribution(num_customers=200, seed=123)
+        # Test with 1000 customers for stable distribution within narrow bands
+        result = calculate_status_distribution(num_customers=1000, seed=42)
 
         active = result["active"]
         canceled = result["canceled"]
         past_due = result["past_due"]
 
-        # Assert total equals 200
-        assert active + canceled + past_due == 200
-        # For larger sample size, distribution should be closer to targets
-        # 65-75% of 200 = 130-150 active
-        # 15-25% of 200 = 30-50 canceled
-        # 8-12% of 200 = 16-24 past_due
-        total_pct = 100
-        active_pct = (active * 100) // 200
-        assert 60 <= active_pct <= 80, f"Active {active_pct}% ({active}/200) not roughly in range [65-75%]"
+        # Assert total equals 1000
+        assert active + canceled + past_due == 1000
+
+        # Calculate percentages and assert all three status bounds
+        active_pct = (active * 100) / 1000
+        canceled_pct = (canceled * 100) / 1000
+        past_due_pct = (past_due * 100) / 1000
+
+        assert ACTIVE_MIN <= active_pct <= ACTIVE_MAX, f"Active {active_pct:.1f}% out of bounds [{ACTIVE_MIN}-{ACTIVE_MAX}%]"
+        assert CANCELED_MIN <= canceled_pct <= CANCELED_MAX, f"Canceled {canceled_pct:.1f}% out of bounds [{CANCELED_MIN}-{CANCELED_MAX}%]"
+        assert PAST_DUE_MIN <= past_due_pct <= PAST_DUE_MAX, f"Past Due {past_due_pct:.1f}% out of bounds [{PAST_DUE_MIN}-{PAST_DUE_MAX}%]"
 
 
 class TestClockPolling:

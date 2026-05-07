@@ -47,6 +47,11 @@ ACTIVE_MIN, ACTIVE_MAX = 65, 75
 CANCELED_MIN, CANCELED_MAX = 15, 25
 PAST_DUE_MIN, PAST_DUE_MAX = 8, 12
 
+# Target centerpoints for distribution (sum to 100%)
+ACTIVE_TARGET_PCT = 70
+CANCELED_TARGET_PCT = 20
+PAST_DUE_TARGET_PCT = 10
+
 
 def determine_customer_status(rng: random.Random) -> str:
     """
@@ -59,11 +64,11 @@ def determine_customer_status(rng: random.Random) -> str:
         One of: 'active', 'canceled', 'past_due'
     """
     rand = rng.randint(1, 100)
-    if rand <= ACTIVE_MAX:
+    if rand <= ACTIVE_TARGET_PCT:  # 1-70: Active
         return STATUS_ACTIVE
-    elif rand <= ACTIVE_MAX + CANCELED_MAX:
+    elif rand <= ACTIVE_TARGET_PCT + CANCELED_TARGET_PCT:  # 71-90: Canceled
         return STATUS_CANCELED
-    else:
+    else:  # 91-100: Past Due
         return STATUS_PAST_DUE
 
 
