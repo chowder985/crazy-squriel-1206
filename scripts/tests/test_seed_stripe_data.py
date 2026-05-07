@@ -345,23 +345,29 @@ class TestDefaultPaymentMethod:
         customer_factory = CustomerFactory(api_key="sk_test_key", dry_run=False)
 
         # Mock both PaymentMethod.attach and Customer.modify
+        # CRITICAL: The attached PM ID must be DIFFERENT from the input token
+        # to catch the bug where the orchestrator passes token instead of .id
+        INPUT_TOKEN = "pm_card_visa"
+        ATTACHED_PM_ID = "pm_1AttachedTest001"  # Realistic PM ID, different from token
+
         mock_attach = mocker.patch("stripe.PaymentMethod.attach")
         mock_attach.return_value = MagicMock(
-            id="pm_card_visa", customer="cus_123"
+            id=ATTACHED_PM_ID, customer="cus_123"
         )
 
         mock_modify = mocker.patch("stripe.Customer.modify")
         mock_modify.return_value = MagicMock(id="cus_123")
 
-        # Call attach
+        # Call attach with token
         attach_result = customer_factory.attach_payment_method(
-            customer_id="cus_123", payment_method_id="pm_card_visa"
+            customer_id="cus_123", payment_method_id=INPUT_TOKEN
         )
         assert attach_result is not None
+        assert attach_result.id == ATTACHED_PM_ID
 
-        # Call set default
+        # Call set default with the ATTACHED ID (production must do this)
         modify_result = customer_factory.set_default_payment_method(
-            customer_id="cus_123", payment_method_id="pm_card_visa"
+            customer_id="cus_123", payment_method_id=ATTACHED_PM_ID
         )
         assert modify_result is True
 
@@ -371,15 +377,15 @@ class TestDefaultPaymentMethod:
         assert attach_call_kwargs["customer"] == "cus_123"
         assert attach_call_kwargs["api_key"] == "sk_test_key"
 
-        # Verify modify was called with correct invoice_settings
+        # Verify modify was called with the ATTACHED PM ID, NOT the input token
         mock_modify.assert_called_once()
         modify_call_args = mock_modify.call_args
         assert modify_call_args[0][0] == "cus_123"
         modify_call_kwargs = modify_call_args[1]
         assert "invoice_settings" in modify_call_kwargs
         assert modify_call_kwargs["invoice_settings"] == {
-            "default_payment_method": "pm_card_visa"
-        }
+            "default_payment_method": ATTACHED_PM_ID
+        }, "set_default must receive the attached PM ID, not the input token"
         assert modify_call_kwargs["api_key"] == "sk_test_key"
 
     def test_default_pm_set_failure_skips_subscription(self, mocker):
@@ -434,6 +440,72 @@ class TestDefaultPaymentMethod:
 
         # Verify error_count was incremented due to Customer.modify failure
         assert result["error_count"] > 0, "Error count should be incremented"
+
+    def test_orchestrator_passes_attached_pm_id_to_set_default(self, mocker):
+        """C-32(c): Orchestrator passes attached PM ID (not token) to set_default_payment_method."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from seed_stripe_data import seed_stripe_data
+
+        # Mock all Stripe API calls
+        INPUT_TOKEN = "pm_card_visa"
+        ATTACHED_PM_ID = "pm_1OrchestratorTest999"  # Different from input token
+
+        mock_create_customer = mocker.patch("stripe.Customer.create")
+        mock_create_customer.return_value = MagicMock(id="cus_orch_test_001")
+
+        # CRITICAL: PaymentMethod.attach returns a PM with .id that is different from the token
+        mock_attach_pm = mocker.patch("stripe.PaymentMethod.attach")
+        mock_attach_pm.return_value = MagicMock(id=ATTACHED_PM_ID, customer="cus_orch_test_001")
+
+        # Customer.modify should be called with the ATTACHED PM ID, not the input token
+        mock_modify = mocker.patch("stripe.Customer.modify")
+        mock_modify.return_value = MagicMock(id="cus_orch_test_001")
+
+        mock_create_subscription = mocker.patch("stripe.Subscription.create")
+        mock_create_subscription.return_value = MagicMock(id="sub_orch_test_001", status="active")
+
+        mock_cancel_subscription = mocker.patch("stripe.Subscription.delete")
+        mock_cancel_subscription.return_value = MagicMock(id="sub_orch_test_001", status="canceled")
+
+        mock_create_clock = mocker.patch("stripe.test_helpers.TestClock.create")
+        mock_create_clock.return_value = MagicMock(id="clock_orch_test_001", status="ready")
+
+        mock_advance_clock = mocker.patch("stripe.test_helpers.TestClock.advance")
+        mock_advance_clock.return_value = MagicMock(id="clock_orch_test_001", status="ready")
+
+        mock_retrieve_clock = mocker.patch("stripe.test_helpers.TestClock.retrieve")
+        mock_retrieve_clock.return_value = MagicMock(id="clock_orch_test_001", status="ready")
+
+        mocker.patch("time.sleep")
+        mocker.patch("stripe.Customer.list", return_value=[])
+
+        # Run the orchestrator with 1 customer (simplest test case)
+        result = seed_stripe_data(
+            api_key="sk_test_key",
+            num_customers=1,
+            seed=42,
+            dry_run=False,
+            price_id="price_orch_test",
+        )
+
+        # Verify Customer.modify was called
+        assert mock_modify.call_count > 0, "Customer.modify should be called"
+
+        # Find the Customer.modify call for the normal (active) subscription branch
+        # (in this test, the first customer will be active status)
+        for call in mock_modify.call_args_list:
+            call_kwargs = call[1]
+            if "invoice_settings" in call_kwargs:
+                # Assert that the invoice_settings uses the ATTACHED PM ID, not the input token
+                assert call_kwargs["invoice_settings"]["default_payment_method"] == ATTACHED_PM_ID, \
+                    f"Orchestrator must pass attached PM ID ({ATTACHED_PM_ID}), not input token ({INPUT_TOKEN})"
+
+        # Verify result is success
+        assert result["customer_count"] == 1, "1 customer should be created"
+        assert result["error_count"] == 0, "No errors should occur"
 
 
 class TestInvalidApiResponse:
