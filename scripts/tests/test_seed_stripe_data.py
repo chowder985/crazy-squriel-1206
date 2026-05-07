@@ -271,7 +271,7 @@ class TestIdempotency:
 class TestApiKeyLogging:
     """Test that API keys are not leaked in logs."""
 
-    def test_api_key_not_logged(self, mocker, caplog):
+    def test_api_key_not_logged(self, caplog):
         """C-19: API key never appears in logs."""
         api_key = "sk_test_secret_key_12345"
 
@@ -327,7 +327,7 @@ class TestDateRange:
 class TestActiveSubscriptionLifecycle:
     """Test active subscription behavior."""
 
-    def test_active_subscription_lifecycle(self, mocker):
+    def test_active_subscription_lifecycle(self):
         """C-6: Active subscriptions advanced 6 months and remain active."""
         clock_manager = ClockManager(api_key="sk_test_key", dry_run=True)
 
@@ -336,8 +336,8 @@ class TestActiveSubscriptionLifecycle:
         assert clock is not None
 
         # Mock advancing 6 months (6 x 30 days)
-        for month in range(1, 7):
-            result = clock_manager.advance_clock("clock_123", days_forward=30)
+        for _ in range(1, 7):
+            clock_manager.advance_clock("clock_123", days_forward=30)
             ready = clock_manager.poll_clock_ready("clock_123")
             assert ready is True
 
@@ -569,8 +569,6 @@ class TestCleanup:
 
     def test_cleanup_deletes_clocks(self, mocker):
         """C-25: Cleanup flag lists and deletes test clocks matching pattern."""
-        clock_manager = ClockManager(api_key="sk_test_key", dry_run=False)
-
         # Mock clock listing (correct path: stripe.test_helpers.TestClock)
         mock_list = mocker.patch("stripe.test_helpers.TestClock.list")
         mock_clock = MagicMock(id="clock_mrr_seed_001", name="mrr-seed-clock-0")
@@ -694,7 +692,7 @@ class TestOrchestration:
         mocker.patch("time.sleep")
         mocker.patch("stripe.Customer.list", return_value=[])
 
-        result = seed_stripe_data(
+        seed_stripe_data(
             api_key="sk_test_key",
             num_customers=6,
             seed=42,
@@ -789,7 +787,7 @@ class TestOrchestration:
         mocker.patch("time.sleep")
         mocker.patch("stripe.Customer.list", return_value=[])
 
-        result = seed_stripe_data(
+        seed_stripe_data(
             api_key="sk_test_key",
             num_customers=6,
             seed=42,
@@ -1030,7 +1028,7 @@ class TestCleanupAfter:
                 [Mock(id=cid) for cid in created_in_run]
             )
 
-            def create_clock_side_effect(*args, **kwargs):
+            def create_clock_side_effect(*_args, **_kwargs):
                 return next(created_clocks)
 
             mock_clock_manager.create_clock.side_effect = create_clock_side_effect
@@ -1090,7 +1088,7 @@ class TestCleanupAfter:
             # Make customer creation fail on second call
             call_count = [0]
 
-            def create_customer_side_effect(*args, **kwargs):
+            def create_customer_side_effect(*_args, **_kwargs):
                 call_count[0] += 1
                 if call_count[0] == 2:
                     raise Exception("Simulated customer creation failure")
@@ -1287,7 +1285,6 @@ class TestResetFunctionality:
 
         # Verify reset_seed_data was called before seeding
         assert mock_reset.called, "reset_seed_data should be called"
-        reset_call_kwargs = mock_reset.call_args[1] if mock_reset.call_args[1] else {}
         assert mock_reset.call_args[0][0] == "sk_test_key", "API key should be passed"
 
     def test_reset_skipped_on_dry_run(self, mocker):
