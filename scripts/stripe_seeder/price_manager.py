@@ -102,12 +102,14 @@ def ensure_seed_price(api_key: str, dry_run: bool = False) -> str:
             # Use the product we found earlier
             product = products[0]
 
-        # Create recurring Price
+        # Create recurring Price.
+        # Stripe's /v1/prices endpoint takes `unit_amount` (cents), not `amount`
+        # — `amount` is from the older Charge API.
         try:
             price = stripe.Price.create(
                 product=product.id,
                 currency=SEED_PRICE_CURRENCY,
-                amount=SEED_PRICE_AMOUNT_CENTS,
+                unit_amount=SEED_PRICE_AMOUNT_CENTS,
                 recurring={
                     "interval": SEED_PRICE_INTERVAL,
                     "interval_count": 1,
@@ -120,7 +122,7 @@ def ensure_seed_price(api_key: str, dry_run: bool = False) -> str:
             logger.error(
                 f"Failed to create Price: {e.user_message}. "
                 f"Parameters: product={product.id}, currency={SEED_PRICE_CURRENCY}, "
-                f"amount={SEED_PRICE_AMOUNT_CENTS} cents, interval={SEED_PRICE_INTERVAL}"
+                f"unit_amount={SEED_PRICE_AMOUNT_CENTS} cents, interval={SEED_PRICE_INTERVAL}"
             )
             raise PriceCreationError(f"Price creation failed: {e}") from e
 

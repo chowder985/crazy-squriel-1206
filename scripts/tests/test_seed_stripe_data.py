@@ -650,6 +650,23 @@ class TestPriceManager:
             mock_product_create.assert_called_once()
             mock_price_create.assert_called_once()
 
+            # Stripe's Price.create takes `unit_amount` (cents), NOT `amount`.
+            # `amount` is the legacy Charge API parameter and Stripe rejects it
+            # on /v1/prices with 400 'Received unknown parameter: amount'.
+            price_kwargs = mock_price_create.call_args.kwargs
+            assert "unit_amount" in price_kwargs, (
+                f"Price.create must use unit_amount (cents), not amount. "
+                f"Called with: {sorted(price_kwargs.keys())}"
+            )
+            assert "amount" not in price_kwargs, (
+                f"Price.create called with deprecated `amount` kwarg — Stripe will 400. "
+                f"Use `unit_amount`. Called with: {sorted(price_kwargs.keys())}"
+            )
+            assert price_kwargs["unit_amount"] > 0
+            assert price_kwargs.get("currency") == "usd"
+            assert "recurring" in price_kwargs
+            assert price_kwargs["recurring"].get("interval") == "month"
+
     def test_subscription_uses_resolved_price(self):
         """C-29(c): Full orchestration uses resolved price_id, never 'price_test_mrr'."""
         import sys
