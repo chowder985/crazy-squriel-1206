@@ -400,7 +400,7 @@ class TestDefaultPaymentMethod:
         # Mock Customer.modify to raise an error (simulating default-PM set failure)
         mock_modify = mocker.patch("stripe.Customer.modify")
         import stripe
-        mock_modify.side_effect = stripe.error.InvalidRequestError(
+        mock_modify.side_effect = stripe.error.StripeError(
             "Invalid payment method"
         )
 
@@ -522,6 +522,9 @@ class TestOrchestration:
         mock_attach_pm = mocker.patch("stripe.PaymentMethod.attach")
         mock_attach_pm.return_value = MagicMock(id="pm_test_123")
 
+        mock_modify = mocker.patch("stripe.Customer.modify")
+        mock_modify.return_value = MagicMock(id="cus_test_123")
+
         mock_create_clock = mocker.patch("stripe.test_helpers.TestClock.create")
         mock_create_clock.return_value = MagicMock(
             id="clock_test_123", status="ready", name="mrr-seed-clock-000"
@@ -618,6 +621,9 @@ class TestOrchestration:
 
         mock_attach_pm = mocker.patch("stripe.PaymentMethod.attach")
         mock_attach_pm.return_value = MagicMock(id="pm_test_123")
+
+        mock_modify = mocker.patch("stripe.Customer.modify")
+        mock_modify.return_value = MagicMock(id="cus_test_123")
 
         mock_create_clock = mocker.patch("stripe.test_helpers.TestClock.create")
         mock_create_clock.return_value = MagicMock(id="clock_test_123", status="ready")
