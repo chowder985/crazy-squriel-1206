@@ -11,12 +11,17 @@ Usage:
 Always cleans up created resources where possible.
 """
 
+import logging
 import os
 import pytest
 import stripe
 import time
 
+from stripe_seeder.clock_manager import ClockManager
+from stripe_seeder.errors import ClockTimeoutError
 from stripe_seeder.price_manager import ensure_seed_price
+
+logger = logging.getLogger(__name__)
 
 
 pytestmark = pytest.mark.skipif(
@@ -52,11 +57,14 @@ def test_smoke_subscription_create_with_resolved_price(api_key):
         frozen_time=int(time.time()),
         name="mrr-seed-smoke-clock",
     )
+    clock_manager = ClockManager(api_key, dry_run=False)
     customer = None
     try:
         # Create a fresh customer with NO payment method (C-32 requirement).
+        # Use a unique email per run to avoid collisions on re-runs.
+        unique_email = f"smoke-test-{int(time.time())}@example.com"
         customer = stripe.Customer.create(
-            email="smoke-test@example.com",
+            email=unique_email,
             name="Smoke Test Customer",
             test_clock=clock.id,
         )
@@ -73,13 +81,9 @@ def test_smoke_subscription_create_with_resolved_price(api_key):
             invoice_settings={"default_payment_method": pm.id},
         )
 
-        # Advance the clock 1 month to generate invoices.
-        stripe.test_helpers.TestClock.advance(
-            clock.id,
-            frozen_time=int(time.time()) + 2592000,
-        )
-
         # Create a subscription using the resolved Price.
+        # No clock advancement needed for this smoke test; the resolved price
+        # is all that's needed to verify the end-to-end flow (C-31).
         sub = stripe.Subscription.create(
             customer=customer.id,
             items=[{"price": price_id}],
@@ -88,5 +92,13 @@ def test_smoke_subscription_create_with_resolved_price(api_key):
             f"Expected active/trialing/incomplete subscription, got {sub.status}"
         )
     finally:
-        # Cleanup: delete the test clock (cascades to customer + subscription).
+        # Cleanup: poll clock to ensure it's ready before deletion (hygiene + safety).
+        # If clock is still advancing, wait for it to complete before deleting.
+        try:
+            clock_manager.poll_clock_ready(clock.id)
+        except ClockTimeoutError:
+            # Best-effort: log warning and continue with deletion anyway.
+            logger.warning(f"Clock {clock.id} did not reach ready before cleanup timeout")
+
+        # Delete the test clock (cascades to customer + subscription).
         stripe.test_helpers.TestClock.delete(clock.id)
