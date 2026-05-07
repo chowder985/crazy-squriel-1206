@@ -991,3 +991,160 @@ class TestPriceManager:
             assert "query" in call_kwargs
             assert "metadata['mrr-seed-plan']" in call_kwargs["query"]
             assert price_id == "price_test_001"
+
+
+class TestCleanupAfter:
+    """Test the --cleanup-after flag and its behavior."""
+
+    def test_cleanup_after_deletes_only_run_clocks(self):
+        """C-35: cleanup_after deletes only clocks created in this run, not pre-existing ones."""
+        from seed_stripe_data import seed_stripe_data
+
+        # Track which clocks were created in this run
+        # With 6 customers and batches of 3, we'll create 2 clocks
+        created_in_run = ["clock_run_001", "clock_run_002"]
+
+        with patch("seed_stripe_data.ClockManager") as MockClockManager, \
+             patch("seed_stripe_data.CustomerFactory") as MockCustomerFactory, \
+             patch("seed_stripe_data.ensure_seed_price") as mock_ensure_price:
+
+            mock_clock_manager = MockClockManager.return_value
+            mock_customer_factory = MockCustomerFactory.return_value
+
+            # Mock clock creation to return our test IDs
+            created_clocks = iter(
+                [Mock(id=cid) for cid in created_in_run]
+            )
+
+            def create_clock_side_effect(*args, **kwargs):
+                return next(created_clocks)
+
+            mock_clock_manager.create_clock.side_effect = create_clock_side_effect
+            mock_clock_manager.delete_clock.return_value = True
+            mock_ensure_price.return_value = "price_test_123"
+
+            # Mock customer factory
+            mock_customer_factory.error_count = 0
+            mock_customer_factory.check_existing_customer.return_value = False
+
+            mock_customer = Mock(id="cus_test_001")
+            mock_customer_factory.create_customer.return_value = mock_customer
+
+            mock_pm = Mock(id="pm_test_001")
+            mock_customer_factory.attach_payment_method.return_value = mock_pm
+            mock_customer_factory.set_default_payment_method.return_value = True
+
+            mock_subscription = Mock(id="sub_test_001")
+            mock_customer_factory.create_subscription.return_value = mock_subscription
+
+            # Run seeding with cleanup_after=True
+            # 6 customers with batches of 3 = 2 clocks created
+            seed_stripe_data(
+                api_key="sk_test_key",
+                num_customers=6,
+                seed=42,
+                dry_run=False,
+                cleanup_after=True,
+            )
+
+            # Assert delete_clock was called for clocks created in this run
+            delete_calls = [call[0][0] for call in mock_clock_manager.delete_clock.call_args_list]
+            for clock_id in created_in_run:
+                assert clock_id in delete_calls, f"Clock {clock_id} should have been deleted"
+
+    def test_cleanup_after_runs_even_on_exception(self):
+        """C-35: cleanup_after runs even if an exception occurs during seeding."""
+        from seed_stripe_data import seed_stripe_data
+
+        with patch("seed_stripe_data.ClockManager") as MockClockManager, \
+             patch("seed_stripe_data.CustomerFactory") as MockCustomerFactory, \
+             patch("seed_stripe_data.ensure_seed_price") as mock_ensure_price:
+
+            mock_clock_manager = MockClockManager.return_value
+            mock_customer_factory = MockCustomerFactory.return_value
+
+            # Mock clock creation
+            mock_clock = Mock(id="clock_run_001")
+            mock_clock_manager.create_clock.return_value = mock_clock
+            mock_clock_manager.delete_clock.return_value = True
+            mock_ensure_price.return_value = "price_test_123"
+
+            # Mock customer factory
+            mock_customer_factory.error_count = 0
+            mock_customer_factory.check_existing_customer.return_value = False
+
+            # Make customer creation fail on second call
+            call_count = [0]
+
+            def create_customer_side_effect(*args, **kwargs):
+                call_count[0] += 1
+                if call_count[0] == 2:
+                    raise Exception("Simulated customer creation failure")
+                return Mock(id="cus_test_001")
+
+            mock_customer_factory.create_customer.side_effect = create_customer_side_effect
+
+            mock_pm = Mock(id="pm_test_001")
+            mock_customer_factory.attach_payment_method.return_value = mock_pm
+            mock_customer_factory.set_default_payment_method.return_value = True
+
+            mock_subscription = Mock(id="sub_test_001")
+            mock_customer_factory.create_subscription.return_value = mock_subscription
+
+            # Run seeding with cleanup_after=True
+            with pytest.raises(Exception, match="Simulated customer creation failure"):
+                seed_stripe_data(
+                    api_key="sk_test_key",
+                    num_customers=6,  # 2 clocks, will fail on 2nd customer
+                    seed=42,
+                    dry_run=False,
+                    cleanup_after=True,
+                )
+
+            # Assert delete_clock was still called even though exception occurred
+            assert mock_clock_manager.delete_clock.called, "cleanup_after should still run on exception"
+            delete_calls = [call[0][0] for call in mock_clock_manager.delete_clock.call_args_list]
+            assert "clock_run_001" in delete_calls
+
+    def test_cleanup_after_flag_default_off(self):
+        """C-35: Without cleanup_after=True, delete_clock is NOT called (backward compatibility)."""
+        from seed_stripe_data import seed_stripe_data
+
+        with patch("seed_stripe_data.ClockManager") as MockClockManager, \
+             patch("seed_stripe_data.CustomerFactory") as MockCustomerFactory, \
+             patch("seed_stripe_data.ensure_seed_price") as mock_ensure_price:
+
+            mock_clock_manager = MockClockManager.return_value
+            mock_customer_factory = MockCustomerFactory.return_value
+
+            # Mock clock creation
+            mock_clock = Mock(id="clock_run_001")
+            mock_clock_manager.create_clock.return_value = mock_clock
+            mock_clock_manager.delete_clock.return_value = True
+            mock_ensure_price.return_value = "price_test_123"
+
+            # Mock customer factory
+            mock_customer_factory.error_count = 0
+            mock_customer_factory.check_existing_customer.return_value = False
+
+            mock_customer = Mock(id="cus_test_001")
+            mock_customer_factory.create_customer.return_value = mock_customer
+
+            mock_pm = Mock(id="pm_test_001")
+            mock_customer_factory.attach_payment_method.return_value = mock_pm
+            mock_customer_factory.set_default_payment_method.return_value = True
+
+            mock_subscription = Mock(id="sub_test_001")
+            mock_customer_factory.create_subscription.return_value = mock_subscription
+
+            # Run seeding WITHOUT cleanup_after (default False)
+            seed_stripe_data(
+                api_key="sk_test_key",
+                num_customers=2,
+                seed=42,
+                dry_run=False,
+                cleanup_after=False,  # Explicitly False (or omitted)
+            )
+
+            # Assert delete_clock was NOT called
+            assert not mock_clock_manager.delete_clock.called, "delete_clock should not be called when cleanup_after=False"

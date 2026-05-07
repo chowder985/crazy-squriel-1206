@@ -163,6 +163,34 @@ These tests:
 
 Without `RUN_LIVE_TESTS=1`, the live smoke tests are skipped automatically.
 
+### End-to-End Seed Gate (C-35)
+
+In addition to the live smoke tests, a full **end-to-end seeding cycle** must pass before Sprint 1 is marked complete. This gate ensures the script creates, advances, and cleans up clocks correctly:
+
+```bash
+set -a && source .env && set +a
+python scripts/seed_stripe_data.py --num-customers 3 --cleanup-after
+```
+
+This command:
+1. Creates 1 test clock (batches 3 customers per clock).
+2. Creates 3 customers with subscriptions (1 per batch).
+3. Advances the clock through 6 months of time.
+4. Automatically deletes the created clock(s) after completion (`--cleanup-after` flag).
+
+**Success criteria:**
+- Exit code 0 (no errors).
+- No `ERROR` log lines in output.
+- Summary includes: `Cleanup-after complete: 1 clocks deleted, 0 failed`.
+
+**Expected output excerpt:**
+```
+Cleaned up clock clock_001
+Cleanup-after complete: 1 clocks deleted, 0 failed
+```
+
+**Requirement for Pass:** The full stdout from this command must be posted to `.harness/evaluations/sprint-01-evaluation.md` under the section "## Live End-to-End Seed Evidence (C-35)". Both the live smoke test (C-31) and the end-to-end seed gate (C-35) must pass for the sprint to close.
+
 ### Architecture
 
 The script is organized into focused modules for maintainability and testability:

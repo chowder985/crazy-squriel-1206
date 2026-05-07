@@ -105,6 +105,7 @@ def seed_stripe_data(
     seed: int = DEFAULT_SEED,
     dry_run: bool = False,
     price_id: str = None,
+    cleanup_after: bool = False,
 ) -> dict:
     """
     Main seeding orchestration logic.
@@ -115,6 +116,7 @@ def seed_stripe_data(
         seed: Random seed for reproducibility (default 42)
         dry_run: If True, log operations without making API calls
         price_id: Optional Stripe Price ID; if not provided, will be created
+        cleanup_after: If True, automatically delete all clocks created in this run
 
     Returns:
         Dict with seeding results (customer_count, active_count, etc.)
@@ -156,131 +158,157 @@ def seed_stripe_data(
     customer_subscriptions: dict = {}  # customer_id -> list of sub_ids
     cancellations_per_month: dict = {}  # month -> list of (customer_id, sub_id) to cancel
 
-    # Iterate through batches
-    for clock_idx in range(num_clocks):
-        # Create clock for this batch with a deterministic name for cleanup
-        clock_frozen_time = start_date
-        clock_name = f"mrr-seed-clock-{clock_idx:03d}"
-        clock = clock_manager.create_clock(clock_frozen_time, name=clock_name)
-        clock_id = clock.id if hasattr(clock, "id") else "clock_dryrun_001"
+    # Track clocks created in this run for cleanup_after
+    created_clock_ids: list[str] = []
 
-        logger.info(f"Created clock {clock_id} with name {clock_name}")
+    # Iterate through batches (wrapped in try/finally for cleanup_after)
+    try:
+        for clock_idx in range(num_clocks):
+            # Create clock for this batch with a deterministic name for cleanup
+            clock_frozen_time = start_date
+            clock_name = f"mrr-seed-clock-{clock_idx:03d}"
+            clock = clock_manager.create_clock(clock_frozen_time, name=clock_name)
+            clock_id = clock.id if hasattr(clock, "id") else "clock_dryrun_001"
 
-        # Determine how many customers in this batch (up to 3)
-        batch_start = clock_idx * CUSTOMERS_PER_CLOCK
-        batch_end = min(batch_start + CUSTOMERS_PER_CLOCK, num_customers)
-        batch_size = batch_end - batch_start
+            # Track this clock for cleanup_after
+            if cleanup_after and not dry_run:
+                created_clock_ids.append(clock_id)
 
-        logger.info(f"Processing batch {clock_idx + 1}/{num_clocks} ({batch_size} customers)")
+            logger.info(f"Created clock {clock_id} with name {clock_name}")
 
-        # Create customers in this batch and their subscriptions
-        for cust_idx in range(batch_start, batch_end):
-            email = f"mrr-seed-{cust_idx + 1:03d}@example.com"
-            name = f"Test Customer {cust_idx + 1:03d}"
+            # Determine how many customers in this batch (up to 3)
+            batch_start = clock_idx * CUSTOMERS_PER_CLOCK
+            batch_end = min(batch_start + CUSTOMERS_PER_CLOCK, num_customers)
+            batch_size = batch_end - batch_start
 
-            # Check for existing customer
-            if customer_factory.check_existing_customer(email):
-                logger.info(f"Customer {email} already exists, skipping")
-                continue
+            logger.info(f"Processing batch {clock_idx + 1}/{num_clocks} ({batch_size} customers)")
 
-            # Create customer
-            customer = customer_factory.create_customer(email, name, clock_id)
-            if not customer:
-                error_count += 1
-                logger.warning(f"Failed to create customer {email}")
-                continue
+            # Create customers in this batch and their subscriptions
+            for cust_idx in range(batch_start, batch_end):
+                email = f"mrr-seed-{cust_idx + 1:03d}@example.com"
+                name = f"Test Customer {cust_idx + 1:03d}"
 
-            created_customers += 1
-            customer_id = customer.id if hasattr(customer, "id") else "cus_dryrun_001"
-            customer_subscriptions[customer_id] = []
+                # Check for existing customer
+                if customer_factory.check_existing_customer(email):
+                    logger.info(f"Customer {email} already exists, skipping")
+                    continue
 
-            # Determine status for this customer
-            status = determine_customer_status(rng)
-            status_counts[status] += 1
-
-            # Attach payment method based on status
-            if status == STATUS_PAST_DUE:
-                # Past-due customers get the failing card token
-                pm_token = "pm_card_chargeCustomerFail"
-                pm_result = customer_factory.attach_payment_method(customer_id, pm_token)
-                if pm_result:
-                    # Set as default payment method for invoicing (use attached PM ID, not token)
-                    if customer_factory.set_default_payment_method(customer_id, pm_result.id):
-                        logger.info(
-                            f"Customer {customer_id} marked for past-due "
-                            f"with pm_card_chargeCustomerFail and set as default"
-                        )
-                    else:
-                        error_count += 1
-                        logger.warning(
-                            f"Failed to set default payment method for customer {customer_id}; "
-                            f"skipping subscription creation"
-                        )
-                        continue
-            else:
-                # Active and canceled customers get normal test card
-                pm_token = "pm_card_visa"
-                pm_result = customer_factory.attach_payment_method(customer_id, pm_token)
-                if pm_result:
-                    # Set as default payment method for invoicing (use attached PM ID, not token)
-                    if customer_factory.set_default_payment_method(customer_id, pm_result.id):
-                        logger.info(f"Customer {customer_id} attached normal payment method")
-                    else:
-                        error_count += 1
-                        logger.warning(
-                            f"Failed to set default payment method for customer {customer_id}; "
-                            f"skipping subscription creation"
-                        )
-                        continue
-
-            # Create 1-3 subscriptions per customer (deterministic from RNG)
-            num_subs = rng.randint(1, min(3, SUBSCRIPTIONS_PER_CUSTOMER))
-            for sub_idx in range(num_subs):
-                idempotency_key = f"seed-sub-{customer_id}-{sub_idx}"
-                subscription = customer_factory.create_subscription(
-                    customer_id=customer_id,
-                    price_id=price_id,
-                    test_clock_id=clock_id,
-                    idempotency_key=idempotency_key,
-                )
-                if subscription:
-                    sub_id = subscription.id if hasattr(subscription, "id") else f"sub_dryrun_{sub_idx}"
-                    customer_subscriptions[customer_id].append(sub_id)
-                    logger.info(f"Created subscription {sub_id} for customer {customer_id}")
-
-                    # Schedule cancellation for canceled cohort at month 3 or 4
-                    if status == STATUS_CANCELED:
-                        cancel_month = rng.randint(3, 4)
-                        if cancel_month not in cancellations_per_month:
-                            cancellations_per_month[cancel_month] = []
-                        cancellations_per_month[cancel_month].append((customer_id, sub_id))
-                        logger.info(
-                            f"Scheduled subscription {sub_id} for cancellation at month {cancel_month}"
-                        )
-                else:
+                # Create customer
+                customer = customer_factory.create_customer(email, name, clock_id)
+                if not customer:
                     error_count += 1
-                    logger.warning(f"Failed to create subscription for customer {customer_id}")
+                    logger.warning(f"Failed to create customer {email}")
+                    continue
 
-        # Advance clock through time (1 month intervals, 6 total)
-        try:
-            for month in range(1, 7):
-                # Cancel subscriptions scheduled for this month
-                if month in cancellations_per_month:
-                    for customer_id, sub_id in cancellations_per_month[month]:
-                        cancel_result = customer_factory.cancel_subscription(sub_id)
-                        if cancel_result:
-                            logger.info(f"Canceled subscription {sub_id} at month {month}")
+                created_customers += 1
+                customer_id = customer.id if hasattr(customer, "id") else "cus_dryrun_001"
+                customer_subscriptions[customer_id] = []
+
+                # Determine status for this customer
+                status = determine_customer_status(rng)
+                status_counts[status] += 1
+
+                # Attach payment method based on status
+                if status == STATUS_PAST_DUE:
+                    # Past-due customers get the failing card token
+                    pm_token = "pm_card_chargeCustomerFail"
+                    pm_result = customer_factory.attach_payment_method(customer_id, pm_token)
+                    if pm_result:
+                        # Set as default payment method for invoicing (use attached PM ID, not token)
+                        if customer_factory.set_default_payment_method(customer_id, pm_result.id):
+                            logger.info(
+                                f"Customer {customer_id} marked for past-due "
+                                f"with pm_card_chargeCustomerFail and set as default"
+                            )
                         else:
                             error_count += 1
+                            logger.warning(
+                                f"Failed to set default payment method for customer {customer_id}; "
+                                f"skipping subscription creation"
+                            )
+                            continue
+                else:
+                    # Active and canceled customers get normal test card
+                    pm_token = "pm_card_visa"
+                    pm_result = customer_factory.attach_payment_method(customer_id, pm_token)
+                    if pm_result:
+                        # Set as default payment method for invoicing (use attached PM ID, not token)
+                        if customer_factory.set_default_payment_method(customer_id, pm_result.id):
+                            logger.info(f"Customer {customer_id} attached normal payment method")
+                        else:
+                            error_count += 1
+                            logger.warning(
+                                f"Failed to set default payment method for customer {customer_id}; "
+                                f"skipping subscription creation"
+                            )
+                            continue
 
-                # Advance clock
-                days_forward = 30  # ~1 month
-                clock_manager.advance_clock(clock_id, days_forward)
-                clock_manager.poll_clock_ready(clock_id)
-                logger.info(f"Clock {clock_id} advanced to month {month}")
-        except ClockTimeoutError as e:
-            logger.error(f"Clock timeout for {clock_id}: {e}")
-            error_count += 1
+                # Create 1-3 subscriptions per customer (deterministic from RNG)
+                num_subs = rng.randint(1, min(3, SUBSCRIPTIONS_PER_CUSTOMER))
+                for sub_idx in range(num_subs):
+                    idempotency_key = f"seed-sub-{customer_id}-{sub_idx}"
+                    subscription = customer_factory.create_subscription(
+                        customer_id=customer_id,
+                        price_id=price_id,
+                        test_clock_id=clock_id,
+                        idempotency_key=idempotency_key,
+                    )
+                    if subscription:
+                        sub_id = subscription.id if hasattr(subscription, "id") else f"sub_dryrun_{sub_idx}"
+                        customer_subscriptions[customer_id].append(sub_id)
+                        logger.info(f"Created subscription {sub_id} for customer {customer_id}")
+
+                        # Schedule cancellation for canceled cohort at month 3 or 4
+                        if status == STATUS_CANCELED:
+                            cancel_month = rng.randint(3, 4)
+                            if cancel_month not in cancellations_per_month:
+                                cancellations_per_month[cancel_month] = []
+                            cancellations_per_month[cancel_month].append((customer_id, sub_id))
+                            logger.info(
+                                f"Scheduled subscription {sub_id} for cancellation at month {cancel_month}"
+                            )
+                    else:
+                        error_count += 1
+                        logger.warning(f"Failed to create subscription for customer {customer_id}")
+
+            # Advance clock through time (1 month intervals, 6 total)
+            try:
+                for month in range(1, 7):
+                    # Cancel subscriptions scheduled for this month
+                    if month in cancellations_per_month:
+                        for customer_id, sub_id in cancellations_per_month[month]:
+                            cancel_result = customer_factory.cancel_subscription(sub_id)
+                            if cancel_result:
+                                logger.info(f"Canceled subscription {sub_id} at month {month}")
+                            else:
+                                error_count += 1
+
+                    # Advance clock
+                    days_forward = 30  # ~1 month
+                    clock_manager.advance_clock(clock_id, days_forward)
+                    clock_manager.poll_clock_ready(clock_id)
+                    logger.info(f"Clock {clock_id} advanced to month {month}")
+            except ClockTimeoutError as e:
+                logger.error(f"Clock timeout for {clock_id}: {e}")
+                error_count += 1
+    finally:
+        # Cleanup clocks created in this run if cleanup_after is enabled
+        if cleanup_after and created_clock_ids:
+            cleanup_count = 0
+            cleanup_failed = 0
+            for clock_id in created_clock_ids:
+                try:
+                    if clock_manager.delete_clock(clock_id):
+                        cleanup_count += 1
+                        logger.info(f"Cleaned up clock {clock_id}")
+                    else:
+                        cleanup_failed += 1
+                        logger.warning(f"Failed to clean up clock {clock_id}")
+                except Exception as e:
+                    cleanup_failed += 1
+                    logger.warning(f"Failed to clean up clock {clock_id}: {e}")
+            if created_clock_ids:
+                logger.info(f"Cleanup-after complete: {cleanup_count} clocks deleted, {cleanup_failed} failed")
 
     # Print summary
     print_summary(
@@ -386,6 +414,11 @@ Examples:
         action="store_true",
         help="Delete all test clocks matching the seeding pattern",
     )
+    parser.add_argument(
+        "--cleanup-after",
+        action="store_true",
+        help="Automatically delete all clocks created in this run after seeding completes",
+    )
 
     args = parser.parse_args()
 
@@ -403,6 +436,7 @@ Examples:
                 seed=args.seed,
                 dry_run=args.dry_run,
                 price_id=args.price_id,
+                cleanup_after=args.cleanup_after,
             )
 
             # Exit with success
