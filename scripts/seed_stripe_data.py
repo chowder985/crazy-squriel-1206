@@ -21,6 +21,7 @@ from stripe_seeder.config import load_api_key
 from stripe_seeder.customer_factory import CustomerFactory
 from stripe_seeder.errors import ClockTimeoutError, InvalidAPIKeyError, PriceCreationError
 from stripe_seeder.price_manager import ensure_seed_price
+from stripe_seeder.reset import reset_seed_data
 from stripe_seeder.summary import print_summary
 
 # Load .env from the project root (one level above scripts/).
@@ -106,6 +107,7 @@ def seed_stripe_data(
     dry_run: bool = False,
     price_id: str = None,
     cleanup_after: bool = False,
+    reset: bool = True,
 ) -> dict:
     """
     Main seeding orchestration logic.
@@ -117,10 +119,15 @@ def seed_stripe_data(
         dry_run: If True, log operations without making API calls
         price_id: Optional Stripe Price ID; if not provided, will be created
         cleanup_after: If True, automatically delete all clocks created in this run
+        reset: If True (default), delete all seed-pattern data before seeding
 
     Returns:
         Dict with seeding results (customer_count, active_count, etc.)
     """
+    # Reset seed-pattern data before seeding (if enabled)
+    if reset and not dry_run:
+        reset_seed_data(api_key, dry_run=False)
+
     logger.info(f"Starting Stripe test data seeding for {num_customers} customers")
     logger.info(f"Using random seed {seed} for reproducibility")
 
@@ -419,6 +426,19 @@ Examples:
         action="store_true",
         help="Automatically delete all clocks created in this run after seeding completes",
     )
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        default=True,
+        dest="reset",
+        help="Delete all seed-pattern data before seeding (default: True)",
+    )
+    parser.add_argument(
+        "--no-reset",
+        action="store_false",
+        dest="reset",
+        help="Do NOT delete seed-pattern data before seeding (preserves prior runs)",
+    )
 
     args = parser.parse_args()
 
@@ -437,6 +457,7 @@ Examples:
                 dry_run=args.dry_run,
                 price_id=args.price_id,
                 cleanup_after=args.cleanup_after,
+                reset=args.reset,
             )
 
             # Exit with success

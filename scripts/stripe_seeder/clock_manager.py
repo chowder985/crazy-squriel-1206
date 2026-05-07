@@ -13,8 +13,9 @@ logger = logging.getLogger(__name__)
 
 # Constants
 POLLING_INTERVAL = 1  # seconds
-POLLING_TIMEOUT = 30  # seconds
+POLLING_TIMEOUT = 300  # 5 minutes — Stripe processes invoices, charges, and retries during advancement; see https://docs.stripe.com/billing/testing/test-clocks/api-advanced-usage
 MAX_ADVANCEMENT_DAYS = 60  # ~2 months
+POLLING_PROGRESS_INTERVAL = 30  # Log progress every 30s during polling
 
 
 class ClockManager:
@@ -81,6 +82,7 @@ class ClockManager:
 
         Raises:
             ValueError: If advancement exceeds max allowed
+            ClockTimeoutError: If clock is not ready before advancing
         """
         if days_forward > MAX_ADVANCEMENT_DAYS:
             raise ValueError(
@@ -95,11 +97,20 @@ class ClockManager:
                 {"id": clock_id, "status": "ready"},
             )()
 
-        # Retrieve current clock state to compute new frozen_time from current state,
-        # not from datetime.now(). The clock's frozen_time is the base; we advance from there.
+        # Retrieve current clock state to verify it's ready before advancing
         current_clock = stripe.test_helpers.TestClock.retrieve(
             clock_id, api_key=self.api_key
         )
+
+        # If clock is not ready, poll until it is (defensive check)
+        if current_clock.status != "ready":
+            logger.info(f"Clock {clock_id} status is '{current_clock.status}', polling until ready before advance...")
+            self.poll_clock_ready(clock_id)
+            # Retrieve again after polling
+            current_clock = stripe.test_helpers.TestClock.retrieve(
+                clock_id, api_key=self.api_key
+            )
+
         new_frozen_time = current_clock.frozen_time + (days_forward * 86400)
 
         clock = stripe.test_helpers.TestClock.advance(
@@ -133,16 +144,25 @@ class ClockManager:
             return True
 
         start_time = time.time()
+        last_progress_log = start_time
         while time.time() - start_time < POLLING_TIMEOUT:
             try:
                 clock = stripe.test_helpers.TestClock.retrieve(
                     clock_id, api_key=self.api_key
                 )
                 if clock.status == "ready":
-                    logger.info(f"Clock {clock_id} is ready")
+                    elapsed = int(time.time() - start_time)
+                    logger.info(f"Clock {clock_id} is ready (after {elapsed}s)")
                     return True
             except stripe.error.StripeError as e:
                 logger.warning(f"Error polling clock {clock_id}: {e}")
+
+            # Log progress every POLLING_PROGRESS_INTERVAL seconds
+            current_time = time.time()
+            if current_time - last_progress_log >= POLLING_PROGRESS_INTERVAL:
+                elapsed = int(current_time - start_time)
+                logger.info(f"Clock {clock_id} still advancing... ({elapsed}s elapsed)")
+                last_progress_log = current_time
 
             time.sleep(POLLING_INTERVAL)
 

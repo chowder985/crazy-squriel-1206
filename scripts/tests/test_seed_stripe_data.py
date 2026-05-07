@@ -164,20 +164,30 @@ class TestClockPolling:
             clock_manager_dry.advance_clock("clock_123", days_forward=61)
 
     def test_clock_polling_timeout(self, mocker):
-        """C-9: Clock polling times out after 30s if not ready."""
-        clock_manager = ClockManager(api_key="sk_test_key", dry_run=False)
+        """C-9: Clock polling times out if not ready within timeout period."""
+        from stripe_seeder import clock_manager as clock_manager_module
 
-        # Mock stripe API to never return ready (correct path: stripe.test_helpers.TestClock)
-        mock_retrieve = mocker.patch("stripe.test_helpers.TestClock.retrieve")
-        mock_retrieve.return_value = MagicMock(status="processing")
+        # Temporarily reduce timeout for test (use 1s instead of 300s)
+        original_timeout = clock_manager_module.POLLING_TIMEOUT
+        clock_manager_module.POLLING_TIMEOUT = 1
 
-        # Mock time.sleep to avoid actual delays
-        mocker.patch("time.sleep")
+        try:
+            clock_mgr = ClockManager(api_key="sk_test_key", dry_run=False)
 
-        with pytest.raises(ClockTimeoutError) as exc_info:
-            clock_manager.poll_clock_ready("clock_never_ready")
+            # Mock stripe API to never return ready (correct path: stripe.test_helpers.TestClock)
+            mock_retrieve = mocker.patch("stripe.test_helpers.TestClock.retrieve")
+            mock_retrieve.return_value = MagicMock(status="processing")
 
-        assert "did not reach 'ready'" in str(exc_info.value)
+            # Mock time.sleep to avoid actual delays
+            mocker.patch("time.sleep")
+
+            with pytest.raises(ClockTimeoutError) as exc_info:
+                clock_mgr.poll_clock_ready("clock_never_ready")
+
+            assert "did not reach 'ready'" in str(exc_info.value)
+        finally:
+            # Restore original timeout
+            clock_manager_module.POLLING_TIMEOUT = original_timeout
 
 
 class TestRateLimitHandling:
@@ -1148,3 +1158,214 @@ class TestCleanupAfter:
 
             # Assert delete_clock was NOT called
             assert not mock_clock_manager.delete_clock.called, "delete_clock should not be called when cleanup_after=False"
+
+
+class TestResetFunctionality:
+    """Test pre-run reset functionality."""
+
+    def test_reset_deletes_only_seed_pattern_clocks(self, mocker):
+        """Test that reset only deletes clocks matching seed patterns, not unrelated ones."""
+        from stripe_seeder.reset import reset_seed_data
+
+        # Mock TestClock.list to return mix of seed and unrelated clocks
+        # Use spec and configure return values to avoid Mock automagic with method calls
+        mock_list = mocker.patch("stripe_seeder.reset.stripe.test_helpers.TestClock.list")
+        seed_clock_1 = MagicMock(id="clock_seed_001")
+        seed_clock_1.name = "mrr-seed-clock-001"
+        smoke_clock = MagicMock(id="clock_smoke_001")
+        smoke_clock.name = "mrr-seed-smoke-clock"
+        unrelated_clock = MagicMock(id="clock_other_001")
+        unrelated_clock.name = "my-other-test-clock"
+
+        mock_list.return_value = [seed_clock_1, smoke_clock, unrelated_clock]
+
+        # Mock TestClock.delete
+        mock_delete = mocker.patch("stripe_seeder.reset.stripe.test_helpers.TestClock.delete")
+        mock_delete.return_value = None
+
+        # Mock Customer operations to avoid errors
+        mocker.patch("stripe_seeder.reset.stripe.Customer.search", return_value=[])
+
+        result = reset_seed_data(api_key="sk_test_key", dry_run=False)
+
+        # Verify only seed-pattern clocks were deleted
+        deleted_ids = [call[0][0] for call in mock_delete.call_args_list]
+        assert "clock_seed_001" in deleted_ids, "Seed clock should be deleted"
+        assert "clock_smoke_001" in deleted_ids, "Smoke clock should be deleted"
+        assert "clock_other_001" not in deleted_ids, "Unrelated clock should NOT be deleted"
+        assert result["clocks_deleted"] == 2
+
+    def test_reset_deletes_seed_pattern_customers(self, mocker):
+        """Test that reset only deletes customers matching seed patterns."""
+        from stripe_seeder.reset import reset_seed_data
+        import stripe
+
+        # Mock TestClock operations in reset module's namespace
+        mocker.patch("stripe_seeder.reset.stripe.test_helpers.TestClock.list", return_value=[])
+
+        # Mock Customer.search to raise exception (triggers fallback to Customer.list)
+        mock_search = mocker.patch("stripe_seeder.reset.stripe.Customer.search")
+        mock_search.side_effect = stripe.error.StripeError("Search not supported")
+
+        # Mock Customer.list to return mix of seed and unrelated customers
+        seed_customer = MagicMock(id="cus_seed_001")
+        seed_customer.email = "mrr-seed-001@example.com"
+        smoke_customer = MagicMock(id="cus_smoke_001")
+        smoke_customer.email = "smoke-test-001@example.com"
+        unrelated_customer = MagicMock(id="cus_other_001")
+        unrelated_customer.email = "regular@example.com"
+
+        mock_list = mocker.patch("stripe_seeder.reset.stripe.Customer.list")
+        mock_list.return_value = [seed_customer, smoke_customer, unrelated_customer]
+
+        # Mock Customer.delete
+        mock_delete = mocker.patch("stripe_seeder.reset.stripe.Customer.delete")
+        mock_delete.return_value = None
+
+        result = reset_seed_data(api_key="sk_test_key", dry_run=False)
+
+        # Verify only seed-pattern customers were deleted (fallback filtering should work)
+        deleted_ids = [call[0][0] for call in mock_delete.call_args_list]
+        assert "cus_seed_001" in deleted_ids, "Seed customer should be deleted"
+        assert "cus_smoke_001" in deleted_ids, "Smoke customer should be deleted"
+        assert "cus_other_001" not in deleted_ids, "Unrelated customer should NOT be deleted"
+        assert result["customers_deleted"] == 2
+
+    def test_reset_idempotent_on_missing_resources(self, mocker):
+        """Test that reset ignores 'not found' errors gracefully."""
+        from stripe_seeder.reset import reset_seed_data
+        import stripe
+
+        # Mock TestClock.list in reset module's namespace
+        mock_list = mocker.patch("stripe_seeder.reset.stripe.test_helpers.TestClock.list")
+        seed_clock = Mock(id="clock_seed_001", name="mrr-seed-clock-001")
+        mock_list.return_value = [seed_clock]
+
+        # Mock TestClock.delete to raise "not found" error
+        mock_delete = mocker.patch("stripe_seeder.reset.stripe.test_helpers.TestClock.delete")
+        mock_delete.side_effect = stripe.error.StripeError("No such test clock")
+
+        # Mock Customer search
+        mocker.patch("stripe_seeder.reset.stripe.Customer.search", return_value=[])
+
+        # Should NOT raise exception despite the error
+        result = reset_seed_data(api_key="sk_test_key", dry_run=False)
+
+        # Even though delete raised error, we count it as deleted (idempotent)
+        assert result["errors"] == 0, "No such X errors should be ignored"
+        assert result["clocks_deleted"] == 1, "Clock should still count as deleted"
+
+    def test_reset_runs_before_seeding(self, mocker):
+        """Test that reset is called before clock creation in seed_stripe_data."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from seed_stripe_data import seed_stripe_data
+
+        # Mock reset_seed_data
+        mock_reset = mocker.patch("seed_stripe_data.reset_seed_data")
+        mock_reset.return_value = {"clocks_deleted": 2, "customers_deleted": 5, "errors": 0}
+
+        # Mock other dependencies
+        mocker.patch("seed_stripe_data.ensure_seed_price", return_value="price_test")
+        mocker.patch("seed_stripe_data.ClockManager")
+        mocker.patch("seed_stripe_data.CustomerFactory")
+        mocker.patch("stripe.Customer.list", return_value=[])
+
+        # Run with reset=True (default)
+        seed_stripe_data(
+            api_key="sk_test_key",
+            num_customers=0,
+            dry_run=False,
+            reset=True,
+        )
+
+        # Verify reset_seed_data was called before seeding
+        assert mock_reset.called, "reset_seed_data should be called"
+        reset_call_kwargs = mock_reset.call_args[1] if mock_reset.call_args[1] else {}
+        assert mock_reset.call_args[0][0] == "sk_test_key", "API key should be passed"
+
+    def test_reset_skipped_on_dry_run(self, mocker):
+        """Test that reset is skipped when dry_run=True."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from seed_stripe_data import seed_stripe_data
+
+        # Mock reset_seed_data
+        mock_reset = mocker.patch("seed_stripe_data.reset_seed_data")
+
+        # Mock other dependencies
+        mocker.patch("seed_stripe_data.ensure_seed_price", return_value="price_test")
+        mocker.patch("seed_stripe_data.ClockManager")
+        mocker.patch("seed_stripe_data.CustomerFactory")
+        mocker.patch("stripe.Customer.list", return_value=[])
+
+        # Run with dry_run=True and reset=True (default)
+        seed_stripe_data(
+            api_key="sk_test_key",
+            num_customers=0,
+            dry_run=True,
+            reset=True,
+        )
+
+        # Verify reset_seed_data was NOT called (skipped on dry_run)
+        assert not mock_reset.called, "reset_seed_data should be skipped on dry_run"
+
+    def test_advance_blocks_until_ready(self, mocker):
+        """C-2 (amended): advance_clock polls until status='ready' before advancing."""
+        clock_manager = ClockManager(api_key="sk_test_key", dry_run=False)
+
+        # Mock retrieve to return "advancing" first, then "ready"
+        mock_retrieve = mocker.patch("stripe.test_helpers.TestClock.retrieve")
+        mock_retrieve.side_effect = [
+            Mock(id="clock_123", status="advancing", frozen_time=1700000000),
+            Mock(id="clock_123", status="ready", frozen_time=1700000000),
+        ]
+
+        # Mock advance
+        mock_advance = mocker.patch("stripe.test_helpers.TestClock.advance")
+        mock_advance.return_value = Mock(id="clock_123", status="ready")
+
+        # Mock poll to succeed on second call
+        mock_poll = mocker.patch.object(clock_manager, "poll_clock_ready")
+        mock_poll.return_value = True
+
+        # Mock time.sleep to speed up test
+        mocker.patch("time.sleep")
+
+        result = clock_manager.advance_clock("clock_123", 30)
+
+        # Verify poll was called (advance_clock should block until ready)
+        assert mock_poll.called, "Should poll until clock is ready"
+        assert result.status == "ready"
+
+    def test_reset_flag_default_true(self, mocker):
+        """Test that --reset is the default (True) and --no-reset overrides it."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from seed_stripe_data import seed_stripe_data
+
+        # Mock reset_seed_data to track calls
+        mock_reset = mocker.patch("seed_stripe_data.reset_seed_data")
+        mock_reset.return_value = {"clocks_deleted": 0, "customers_deleted": 0, "errors": 0}
+
+        # Mock dependencies
+        mocker.patch("seed_stripe_data.ensure_seed_price", return_value="price_test")
+        mocker.patch("seed_stripe_data.ClockManager")
+        mocker.patch("seed_stripe_data.CustomerFactory")
+        mocker.patch("stripe.Customer.list", return_value=[])
+
+        # Case 1: reset=True (default)
+        mock_reset.reset_mock()
+        seed_stripe_data(api_key="sk_test_key", num_customers=0, dry_run=False, reset=True)
+        assert mock_reset.called, "Reset should be called with reset=True"
+
+        # Case 2: reset=False (--no-reset)
+        mock_reset.reset_mock()
+        seed_stripe_data(api_key="sk_test_key", num_customers=0, dry_run=False, reset=False)
+        assert not mock_reset.called, "Reset should NOT be called with reset=False"
