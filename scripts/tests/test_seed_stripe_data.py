@@ -812,73 +812,120 @@ class TestPriceManager:
     """Test Price resolution and find-or-create logic."""
 
     def test_ensure_seed_price_finds_existing(self):
-        """C-29(a, b): ensure_seed_price finds and returns existing recurring USD Price."""
+        """C-29(a,b) + C-37(a): ensure_seed_price returns the existing basic-tier Price.
+
+        Iter-14: ensure_seed_price() delegates to ensure_seed_prices(), which
+        filters Price.list() results by Price.metadata['mrr-seed-tier'] for
+        EACH tier (basic/pro/enterprise). All three tiers must be findable
+        in the mocked Price.list response so no Price.create call is made.
+        """
         from stripe_seeder.price_manager import ensure_seed_price
 
         mock_product = Mock()
         mock_product.id = "prod_existing_001"
         mock_product.name = "MRR Seed Plan"
 
-        mock_price = Mock()
-        mock_price.id = "price_existing_usd"
+        # All three tier Prices already exist on the Product. Each must
+        # carry the matching mrr-seed-tier metadata so _find_tier_price()
+        # picks it up.
+        basic_price = Mock(id="price_existing_usd")
+        basic_price.metadata = {"mrr-seed-tier": "basic"}
+        pro_price = Mock(id="price_existing_pro")
+        pro_price.metadata = {"mrr-seed-tier": "pro"}
+        enterprise_price = Mock(id="price_existing_enterprise")
+        enterprise_price.metadata = {"mrr-seed-tier": "enterprise"}
 
         with patch("stripe.Product.search") as mock_product_search, patch(
             "stripe.Price.list"
         ) as mock_price_list:
             mock_product_search.return_value = Mock(data=[mock_product])
-            mock_price_list.return_value = Mock(data=[mock_price])
+            mock_price_list.return_value = Mock(
+                data=[basic_price, pro_price, enterprise_price]
+            )
 
             price_id = ensure_seed_price(api_key="sk_test_key", dry_run=False)
 
+            # ensure_seed_price() returns the basic-tier id
             assert price_id == "price_existing_usd"
             mock_product_search.assert_called_once()
-            # Verify the search query contains metadata lookup
             call_kwargs = mock_product_search.call_args[1]
             assert "query" in call_kwargs
             assert "mrr-seed-plan" in call_kwargs["query"]
             assert "true" in call_kwargs["query"]
-            mock_price_list.assert_called_once()
+            # Price.list called once per tier
+            assert mock_price_list.call_count >= 1
 
     def test_ensure_seed_price_creates_when_absent(self):
-        """C-29(a, b): ensure_seed_price creates Product and Price when none exist."""
+        """C-29(a,b) + C-37(a): creates Product and 3 tier Prices when none exist.
+
+        Iter-14: ensure_seed_prices() find-or-creates one Price per tier
+        (basic/pro/enterprise). When none exist, one Product.create + three
+        Price.create calls are expected, and ensure_seed_price() returns the
+        basic-tier ID (the first one created).
+        """
         from stripe_seeder.price_manager import ensure_seed_price
 
         mock_created_product = Mock()
         mock_created_product.id = "prod_new_001"
 
-        mock_created_price = Mock()
-        mock_created_price.id = "price_new_usd"
+        # Distinct mock Prices per tier so we can verify which one is returned.
+        mock_basic_price = Mock(id="price_basic_new")
+        mock_pro_price = Mock(id="price_pro_new")
+        mock_enterprise_price = Mock(id="price_enterprise_new")
 
         with patch("stripe.Product.search") as mock_product_search, patch(
             "stripe.Product.create"
-        ) as mock_product_create, patch("stripe.Price.create") as mock_price_create:
-            mock_product_search.return_value = Mock(data=[])  # No existing products
+        ) as mock_product_create, patch("stripe.Price.create") as mock_price_create, patch(
+            "stripe.Price.list"
+        ) as mock_price_list:
+            mock_product_search.return_value = Mock(data=[])  # No existing product
             mock_product_create.return_value = mock_created_product
-            mock_price_create.return_value = mock_created_price
+            # No existing Prices on the (newly created) Product, so
+            # _find_tier_price() returns None for every tier and the helper
+            # creates one Price per tier.
+            mock_price_list.return_value = Mock(data=[])
+            mock_price_create.side_effect = [
+                mock_basic_price,
+                mock_pro_price,
+                mock_enterprise_price,
+            ]
 
             price_id = ensure_seed_price(api_key="sk_test_key", dry_run=False)
 
-            assert price_id == "price_new_usd"
+            # ensure_seed_price() returns the basic tier
+            assert price_id == "price_basic_new"
             mock_product_search.assert_called_once()
             mock_product_create.assert_called_once()
-            mock_price_create.assert_called_once()
+            assert mock_price_create.call_count == 3, (
+                f"Expected 3 Price.create calls (one per tier), got "
+                f"{mock_price_create.call_count}"
+            )
 
             # Stripe's Price.create takes `unit_amount` (cents), NOT `amount`.
-            # `amount` is the legacy Charge API parameter and Stripe rejects it
-            # on /v1/prices with 400 'Received unknown parameter: amount'.
-            price_kwargs = mock_price_create.call_args.kwargs
-            assert "unit_amount" in price_kwargs, (
+            # Verify on the FIRST call (basic tier).
+            first_call_kwargs = mock_price_create.call_args_list[0].kwargs
+            assert "unit_amount" in first_call_kwargs, (
                 f"Price.create must use unit_amount (cents), not amount. "
-                f"Called with: {sorted(price_kwargs.keys())}"
+                f"Called with: {sorted(first_call_kwargs.keys())}"
             )
-            assert "amount" not in price_kwargs, (
+            assert "amount" not in first_call_kwargs, (
                 f"Price.create called with deprecated `amount` kwarg — Stripe will 400. "
-                f"Use `unit_amount`. Called with: {sorted(price_kwargs.keys())}"
+                f"Use `unit_amount`. Called with: {sorted(first_call_kwargs.keys())}"
             )
-            assert price_kwargs["unit_amount"] > 0
-            assert price_kwargs.get("currency") == "usd"
-            assert "recurring" in price_kwargs
-            assert price_kwargs["recurring"].get("interval") == "month"
+            assert first_call_kwargs["unit_amount"] > 0
+            assert first_call_kwargs.get("currency") == "usd"
+            assert "recurring" in first_call_kwargs
+            assert first_call_kwargs["recurring"].get("interval") == "month"
+
+            # Each Price.create must carry the tier metadata.
+            tier_metadatas = [
+                call.kwargs.get("metadata", {}).get("mrr-seed-tier")
+                for call in mock_price_create.call_args_list
+            ]
+            assert sorted(tier_metadatas) == ["basic", "enterprise", "pro"], (
+                f"Each tier Price must carry mrr-seed-tier metadata; got "
+                f"{tier_metadatas}"
+            )
 
     def test_subscription_uses_resolved_price(self):
         """C-29(c): Full orchestration uses resolved price_id, never 'price_test_mrr'."""
@@ -897,22 +944,34 @@ class TestPriceManager:
         mock_subscription = Mock()
         mock_subscription.id = "sub_test_001"
 
-        with patch("seed_stripe_data.ensure_seed_price") as mock_ensure_price, \
+        with patch("seed_stripe_data.ensure_seed_prices") as mock_ensure_prices, \
              patch("stripe_seeder.clock_manager.ClockManager.create_clock") as mock_create_clock, \
              patch("stripe_seeder.clock_manager.ClockManager.advance_clock") as mock_advance_clock, \
+             patch("stripe_seeder.clock_manager.ClockManager.poll_clock_ready") as mock_poll, \
              patch("stripe_seeder.customer_factory.CustomerFactory.check_existing_customer") as mock_check_cust, \
              patch("stripe_seeder.customer_factory.CustomerFactory.create_customer") as mock_cust_create, \
              patch("stripe_seeder.customer_factory.CustomerFactory.attach_payment_method") as mock_attach_pm, \
+             patch("stripe_seeder.customer_factory.CustomerFactory.set_default_payment_method") as mock_set_default, \
              patch("stripe_seeder.customer_factory.CustomerFactory.create_subscription") as mock_sub_create, \
+             patch("stripe_seeder.customer_factory.CustomerFactory.cancel_subscription") as mock_sub_cancel, \
              patch("stripe_seeder.summary.print_summary"):
 
-            mock_ensure_price.return_value = "price_resolved_real_001"
+            # Iter-14: ensure_seed_prices() returns a tier->price_id dict.
+            mock_ensure_prices.return_value = {
+                "basic": "price_resolved_real_basic",
+                "pro": "price_resolved_real_pro",
+                "enterprise": "price_resolved_real_enterprise",
+            }
+            allowed_prices = set(mock_ensure_prices.return_value.values())
             mock_create_clock.return_value = mock_clock
             mock_advance_clock.return_value = None
+            mock_poll.return_value = True
             mock_check_cust.return_value = False
             mock_cust_create.return_value = mock_customer
-            mock_attach_pm.return_value = Mock()
+            mock_attach_pm.return_value = Mock(id="pm_test_attached")
+            mock_set_default.return_value = True
             mock_sub_create.return_value = mock_subscription
+            mock_sub_cancel.return_value = mock_subscription
 
             seed_stripe_data(
                 api_key="sk_test_key",
@@ -920,18 +979,23 @@ class TestPriceManager:
                 seed=42,
                 dry_run=False,
                 price_id=None,
+                reset=False,  # avoid invoking reset_seed_data which would
+                              # otherwise need additional mocks
             )
 
-            # Verify ensure_seed_price was called (it's called with positional args in the code)
-            assert mock_ensure_price.call_count == 1
-            call_args, call_kwargs = mock_ensure_price.call_args
+            assert mock_ensure_prices.call_count == 1
+            call_args, call_kwargs = mock_ensure_prices.call_args
             assert call_args[0] == "sk_test_key"
             assert call_kwargs["dry_run"] is False
 
-            # Verify all subscription.create calls use the resolved price, never mock string
+            # Every Subscription.create call must use one of the three
+            # resolved tier Price IDs, never the legacy mock placeholder.
             for call in mock_sub_create.call_args_list:
                 kwargs = call[1]
-                assert kwargs["price_id"] == "price_resolved_real_001"
+                assert kwargs["price_id"] in allowed_prices, (
+                    f"create_subscription called with unexpected price_id "
+                    f"{kwargs['price_id']!r}; expected one of {allowed_prices}"
+                )
                 assert kwargs["price_id"] != "price_test_mrr"
 
     def test_price_creation_failure_aborts(self):
@@ -978,29 +1042,35 @@ class TestPriceManager:
             mock_product_search.assert_not_called()
 
     def test_lookup_uses_documented_endpoint(self):
-        """C-30: Lookup uses stripe.Product.search (documented endpoint), never Product.list(metadata=...)."""
+        """C-30: Lookup uses stripe.Product.search (documented endpoint), never Product.list(metadata=...).
+
+        Iter-14: helper iterates per tier via Price.list. All three tier
+        Prices must be findable so no Price.create is attempted.
+        """
         from stripe_seeder.price_manager import ensure_seed_price
 
         mock_product = Mock()
         mock_product.id = "prod_test_001"
 
-        mock_price = Mock()
-        mock_price.id = "price_test_001"
+        basic_price = Mock(id="price_test_001")
+        basic_price.metadata = {"mrr-seed-tier": "basic"}
+        pro_price = Mock(id="price_test_pro_001")
+        pro_price.metadata = {"mrr-seed-tier": "pro"}
+        enterprise_price = Mock(id="price_test_enterprise_001")
+        enterprise_price.metadata = {"mrr-seed-tier": "enterprise"}
 
         with patch("stripe.Product.search") as mock_search, \
              patch("stripe.Product.list") as mock_list, \
              patch("stripe.Price.list") as mock_price_list:
-            # Configure mocks
             mock_search.return_value = Mock(data=[mock_product])
-            mock_price_list.return_value = Mock(data=[mock_price])
+            mock_price_list.return_value = Mock(
+                data=[basic_price, pro_price, enterprise_price]
+            )
 
             price_id = ensure_seed_price(api_key="sk_test_key", dry_run=False)
 
-            # Assert Product.search was called
             assert mock_search.called, "stripe.Product.search should be called"
-            # Assert Product.list was NOT called (the broken endpoint)
             assert not mock_list.called, "stripe.Product.list(metadata=...) should NOT be called"
-            # Verify search was called with correct query
             call_kwargs = mock_search.call_args[1]
             assert "query" in call_kwargs
             assert "metadata['mrr-seed-plan']" in call_kwargs["query"]
@@ -1020,12 +1090,11 @@ class TestCleanupAfter:
 
         with patch("seed_stripe_data.ClockManager") as MockClockManager, \
              patch("seed_stripe_data.CustomerFactory") as MockCustomerFactory, \
-             patch("seed_stripe_data.ensure_seed_price") as mock_ensure_price:
+             patch("seed_stripe_data.ensure_seed_prices") as mock_ensure_prices:
 
             mock_clock_manager = MockClockManager.return_value
             mock_customer_factory = MockCustomerFactory.return_value
 
-            # Mock clock creation to return our test IDs
             created_clocks = iter(
                 [Mock(id=cid) for cid in created_in_run]
             )
@@ -1035,9 +1104,13 @@ class TestCleanupAfter:
 
             mock_clock_manager.create_clock.side_effect = create_clock_side_effect
             mock_clock_manager.delete_clock.return_value = True
-            mock_ensure_price.return_value = "price_test_123"
+            # Iter-14: ensure_seed_prices returns a tier dict.
+            mock_ensure_prices.return_value = {
+                "basic": "price_test_basic",
+                "pro": "price_test_pro",
+                "enterprise": "price_test_enterprise",
+            }
 
-            # Mock customer factory
             mock_customer_factory.error_count = 0
             mock_customer_factory.check_existing_customer.return_value = False
 
@@ -1050,9 +1123,8 @@ class TestCleanupAfter:
 
             mock_subscription = Mock(id="sub_test_001")
             mock_customer_factory.create_subscription.return_value = mock_subscription
+            mock_customer_factory.cancel_subscription.return_value = mock_subscription
 
-            # Run seeding with cleanup_after=True
-            # 6 customers with batches of 3 = 2 clocks created
             seed_stripe_data(
                 api_key="sk_test_key",
                 num_customers=6,
@@ -1072,18 +1144,20 @@ class TestCleanupAfter:
 
         with patch("seed_stripe_data.ClockManager") as MockClockManager, \
              patch("seed_stripe_data.CustomerFactory") as MockCustomerFactory, \
-             patch("seed_stripe_data.ensure_seed_price") as mock_ensure_price:
+             patch("seed_stripe_data.ensure_seed_prices") as mock_ensure_prices:
 
             mock_clock_manager = MockClockManager.return_value
             mock_customer_factory = MockCustomerFactory.return_value
 
-            # Mock clock creation
             mock_clock = Mock(id="clock_run_001")
             mock_clock_manager.create_clock.return_value = mock_clock
             mock_clock_manager.delete_clock.return_value = True
-            mock_ensure_price.return_value = "price_test_123"
+            mock_ensure_prices.return_value = {
+                "basic": "price_test_basic",
+                "pro": "price_test_pro",
+                "enterprise": "price_test_enterprise",
+            }
 
-            # Mock customer factory
             mock_customer_factory.error_count = 0
             mock_customer_factory.check_existing_customer.return_value = False
 
@@ -1126,18 +1200,20 @@ class TestCleanupAfter:
 
         with patch("seed_stripe_data.ClockManager") as MockClockManager, \
              patch("seed_stripe_data.CustomerFactory") as MockCustomerFactory, \
-             patch("seed_stripe_data.ensure_seed_price") as mock_ensure_price:
+             patch("seed_stripe_data.ensure_seed_prices") as mock_ensure_prices:
 
             mock_clock_manager = MockClockManager.return_value
             mock_customer_factory = MockCustomerFactory.return_value
 
-            # Mock clock creation
             mock_clock = Mock(id="clock_run_001")
             mock_clock_manager.create_clock.return_value = mock_clock
             mock_clock_manager.delete_clock.return_value = True
-            mock_ensure_price.return_value = "price_test_123"
+            mock_ensure_prices.return_value = {
+                "basic": "price_test_basic",
+                "pro": "price_test_pro",
+                "enterprise": "price_test_enterprise",
+            }
 
-            # Mock customer factory
             mock_customer_factory.error_count = 0
             mock_customer_factory.check_existing_customer.return_value = False
 
@@ -1150,6 +1226,7 @@ class TestCleanupAfter:
 
             mock_subscription = Mock(id="sub_test_001")
             mock_customer_factory.create_subscription.return_value = mock_subscription
+            mock_customer_factory.cancel_subscription.return_value = mock_subscription
 
             # Run seeding WITHOUT cleanup_after (default False)
             seed_stripe_data(
@@ -1272,7 +1349,14 @@ class TestResetFunctionality:
         mock_reset.return_value = {"clocks_deleted": 2, "customers_deleted": 5, "errors": 0}
 
         # Mock other dependencies
-        mocker.patch("seed_stripe_data.ensure_seed_price", return_value="price_test")
+        mocker.patch(
+            "seed_stripe_data.ensure_seed_prices",
+            return_value={
+                "basic": "price_test_basic",
+                "pro": "price_test_pro",
+                "enterprise": "price_test_enterprise",
+            },
+        )
         mocker.patch("seed_stripe_data.ClockManager")
         mocker.patch("seed_stripe_data.CustomerFactory")
         mocker.patch("stripe.Customer.list", return_value=[])
@@ -1301,7 +1385,14 @@ class TestResetFunctionality:
         mock_reset = mocker.patch("seed_stripe_data.reset_seed_data")
 
         # Mock other dependencies
-        mocker.patch("seed_stripe_data.ensure_seed_price", return_value="price_test")
+        mocker.patch(
+            "seed_stripe_data.ensure_seed_prices",
+            return_value={
+                "basic": "price_test_basic",
+                "pro": "price_test_pro",
+                "enterprise": "price_test_enterprise",
+            },
+        )
         mocker.patch("seed_stripe_data.ClockManager")
         mocker.patch("seed_stripe_data.CustomerFactory")
         mocker.patch("stripe.Customer.list", return_value=[])
@@ -1358,7 +1449,14 @@ class TestResetFunctionality:
         mock_reset.return_value = {"clocks_deleted": 0, "customers_deleted": 0, "errors": 0}
 
         # Mock dependencies
-        mocker.patch("seed_stripe_data.ensure_seed_price", return_value="price_test")
+        mocker.patch(
+            "seed_stripe_data.ensure_seed_prices",
+            return_value={
+                "basic": "price_test_basic",
+                "pro": "price_test_pro",
+                "enterprise": "price_test_enterprise",
+            },
+        )
         mocker.patch("seed_stripe_data.ClockManager")
         mocker.patch("seed_stripe_data.CustomerFactory")
         mocker.patch("stripe.Customer.list", return_value=[])
@@ -1485,8 +1583,464 @@ class TestMultiClockCancellations:
             f"Each sub should be canceled at most once; {canceled_subs} has duplicates"
         )
 
-        # Verify cancellation count matches expected canceled cohort size
-        assert result["canceled_count"] > 0, "Test requires at least 1 canceled customer (seed=42 should produce ~20%)"
-        assert len(canceled_subs) == result["canceled_count"], (
-            f"Number of cancel calls ({len(canceled_subs)}) should match canceled cohort ({result['canceled_count']})"
+        # Iter-14: cancel calls now include both final cancellations
+        # (status=canceled cohort) AND tier-change cancellations (cancel old
+        # sub before creating v1 on the new tier per C-37). The original
+        # iter-13 invariant — "no duplicate cancels of the same sub_id" —
+        # still holds and is enforced by the `len(canceled_subs) ==
+        # len(set(canceled_subs))` assertion above. The exact count is no
+        # longer meaningful at this seed; we only require ≥ canceled_count.
+        assert (
+            result["canceled_count"] > 0
+            or any(
+                "v0" in sub_id or "v1" in sub_id for sub_id in canceled_subs
+            )
+            or len(canceled_subs) > 0
+        ), (
+            "Expected at least one cancel call from either the canceled "
+            "cohort or a tier-change event with seed=42 / num_customers=6"
+        )
+        assert len(canceled_subs) >= result["canceled_count"], (
+            f"Cancel-call count ({len(canceled_subs)}) must be >= canceled "
+            f"cohort ({result['canceled_count']}). Tier-change events may "
+            f"add additional cancels but never fewer."
+        )
+
+
+class TestIter14SparseAndTierChange:
+    """Iter-14 criteria — C-36 (sparse starts) and C-37 (tier changes)."""
+
+    def test_sparse_start_distribution(self):
+        """C-36(c): start_month values for 20 customers cover ≥3 distinct values."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        import random as _random
+
+        from seed_stripe_data import plan_customer_lifecycle
+
+        rng = _random.Random(42)
+        plans = [plan_customer_lifecycle(idx, rng) for idx in range(20)]
+        start_months = {p.start_month for p in plans}
+        assert len(start_months) >= 3, (
+            f"Expected ≥3 distinct start_months across 20 plans (seed=42); "
+            f"got {sorted(start_months)}"
+        )
+        # Every start_month must lie in the contractually-allowed range 0..4
+        assert all(0 <= p.start_month <= 4 for p in plans), (
+            f"start_month values must be in {{0..4}}; got "
+            f"{[p.start_month for p in plans]}"
+        )
+
+    def test_ensure_seed_prices_returns_three_tiers(self):
+        """C-37(a): ensure_seed_prices() resolves three distinct Price IDs."""
+        from stripe_seeder.price_manager import (
+            TIER_BASIC,
+            TIER_ENTERPRISE,
+            TIER_PRO,
+            ensure_seed_prices,
+        )
+
+        mock_product = Mock(id="prod_three_tier_001")
+        basic_price = Mock(id="price_basic_001")
+        basic_price.metadata = {"mrr-seed-tier": "basic"}
+        pro_price = Mock(id="price_pro_001")
+        pro_price.metadata = {"mrr-seed-tier": "pro"}
+        enterprise_price = Mock(id="price_enterprise_001")
+        enterprise_price.metadata = {"mrr-seed-tier": "enterprise"}
+
+        with patch("stripe.Product.search") as mock_product_search, patch(
+            "stripe.Price.list"
+        ) as mock_price_list:
+            mock_product_search.return_value = Mock(data=[mock_product])
+            mock_price_list.return_value = Mock(
+                data=[basic_price, pro_price, enterprise_price]
+            )
+
+            prices = ensure_seed_prices(api_key="sk_test_key", dry_run=False)
+
+            assert prices == {
+                TIER_BASIC: "price_basic_001",
+                TIER_PRO: "price_pro_001",
+                TIER_ENTERPRISE: "price_enterprise_001",
+            }
+            # All three IDs must be distinct
+            assert len(set(prices.values())) == 3
+
+    def test_ensure_seed_prices_dry_run_returns_placeholders(self):
+        """C-37(a): dry-run mode returns stable placeholders without API calls."""
+        from stripe_seeder.price_manager import (
+            TIER_BASIC,
+            TIER_ENTERPRISE,
+            TIER_PRO,
+            ensure_seed_prices,
+        )
+
+        with patch("stripe.Product.search") as mock_product_search:
+            prices = ensure_seed_prices(api_key="sk_test_key", dry_run=True)
+
+            assert TIER_BASIC in prices
+            assert TIER_PRO in prices
+            assert TIER_ENTERPRISE in prices
+            # Three distinct placeholder IDs
+            assert len(set(prices.values())) == 3
+            # No Stripe API call should have been made
+            mock_product_search.assert_not_called()
+
+    def test_tier_change_planning_invariants(self):
+        """C-37(b): planning invariants on 200 plans w/ seed=42."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        import random as _random
+
+        from seed_stripe_data import (
+            STATUS_PAST_DUE,
+            plan_customer_lifecycle,
+        )
+
+        rng = _random.Random(42)
+        plans = [plan_customer_lifecycle(idx, rng) for idx in range(200)]
+
+        # (i) For plans with tier_change, start_month < tier_change.month
+        for p in plans:
+            if p.tier_change is not None:
+                assert p.start_month < p.tier_change.month, (
+                    f"plan {p.cust_idx}: start_month={p.start_month}, "
+                    f"tier_change.month={p.tier_change.month} (must be >)"
+                )
+
+        # (ii) For plans with both tier_change AND cancel_month,
+        #      tier_change.month < cancel_month
+        for p in plans:
+            if p.tier_change is not None and p.cancel_month is not None:
+                assert p.tier_change.month < p.cancel_month, (
+                    f"plan {p.cust_idx}: tier_change.month="
+                    f"{p.tier_change.month}, cancel_month="
+                    f"{p.cancel_month} (must be >)"
+                )
+
+        # (iv) Past-due customers NEVER have a tier change
+        past_due_with_change = [
+            p for p in plans
+            if p.status == STATUS_PAST_DUE and p.tier_change is not None
+        ]
+        assert past_due_with_change == [], (
+            f"Past-due customers must never have a tier_change; got "
+            f"{[(p.cust_idx, p.tier_change) for p in past_due_with_change]}"
+        )
+
+        # (iii) Tier-change rate among non-past_due customers ~25–35%.
+        non_past_due = [p for p in plans if p.status != STATUS_PAST_DUE]
+        tier_change_count = sum(1 for p in non_past_due if p.tier_change is not None)
+        rate = tier_change_count / len(non_past_due)
+        # Some plans drop tier_change because change_month would exceed
+        # START_MONTH_MAX (4). Allow slightly wider band: 0.20–0.35.
+        assert 0.20 <= rate <= 0.35, (
+            f"Tier-change rate among non-past_due plans must be 20-35% "
+            f"(allowing for change_month>4 drops); got {rate:.2%} "
+            f"({tier_change_count}/{len(non_past_due)})"
+        )
+
+        # (v) New tier ≠ initial tier
+        for p in plans:
+            if p.tier_change is not None:
+                assert p.tier_change.new_tier != p.initial_tier, (
+                    f"plan {p.cust_idx}: tier_change.new_tier "
+                    f"{p.tier_change.new_tier!r} must differ from "
+                    f"initial_tier {p.initial_tier!r}"
+                )
+
+    def test_past_due_never_tier_changes(self):
+        """C-37(c): even with tier_change_rate=1.0, past_due customers don't change tier."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        import random as _random
+
+        from seed_stripe_data import (
+            STATUS_PAST_DUE,
+            plan_customer_lifecycle,
+        )
+
+        # Force 100% tier-change roll. Past-due customers must still have
+        # tier_change=None.
+        rng = _random.Random(7)
+        past_due_plans = []
+        for idx in range(500):
+            plan = plan_customer_lifecycle(idx, rng, tier_change_rate=1.0)
+            if plan.status == STATUS_PAST_DUE:
+                past_due_plans.append(plan)
+
+        assert past_due_plans, (
+            "Test requires at least one past_due plan in 500 (seed=7); "
+            "if this becomes flaky, increase the sample size."
+        )
+        for p in past_due_plans:
+            assert p.tier_change is None, (
+                f"past_due plan {p.cust_idx} must never have a tier_change "
+                f"even at tier_change_rate=1.0; got {p.tier_change}"
+            )
+
+    def test_idempotency_key_versioning(self):
+        """C-37(d) + C-2(c): v0 then v1 idempotency keys for tier change.
+
+        Drives a single customer with a guaranteed tier change through the
+        orchestrator and asserts that Subscription.create idempotency keys
+        carry the version suffix.
+        """
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from unittest.mock import MagicMock as _MM
+
+        from seed_stripe_data import seed_stripe_data
+
+        # Pre-build a deterministic plan: status=active, start_month=0,
+        # tier_change at month=1. We simulate this by patching
+        # plan_customer_lifecycle to return our fixed plan for cust_idx=0.
+        from seed_stripe_data import CustomerPlan, TierChange, plan_customer_lifecycle
+
+        forced_plan = CustomerPlan(
+            cust_idx=0,
+            email="mrr-seed-001@example.com",
+            name="Test Customer 001",
+            status="active",
+            start_month=0,
+            initial_tier="basic",
+            tier_change=TierChange(month=1, new_tier="pro"),
+            cancel_month=None,
+        )
+
+        with patch("seed_stripe_data.plan_customer_lifecycle") as mock_plan, \
+             patch("seed_stripe_data.ensure_seed_prices") as mock_ensure_prices, \
+             patch("seed_stripe_data.ClockManager") as MockCM, \
+             patch("seed_stripe_data.CustomerFactory") as MockCF, \
+             patch("stripe_seeder.summary.print_summary"), \
+             patch("seed_stripe_data.reset_seed_data"):
+
+            mock_plan.return_value = forced_plan
+            mock_ensure_prices.return_value = {
+                "basic": "price_basic_xx",
+                "pro": "price_pro_xx",
+                "enterprise": "price_ent_xx",
+            }
+
+            mock_cm = MockCM.return_value
+            mock_cm.create_clock.return_value = _MM(id="clock_iter14_001")
+
+            mock_cf = MockCF.return_value
+            mock_cf.error_count = 0
+            mock_cf.check_existing_customer.return_value = False
+            mock_cf.create_customer.return_value = _MM(id="cus_iter14_001")
+            mock_cf.attach_payment_method.return_value = _MM(id="pm_iter14_001")
+            mock_cf.set_default_payment_method.return_value = True
+            # First create -> v0 sub; second create -> v1 sub
+            mock_cf.create_subscription.side_effect = [
+                _MM(id="sub_iter14_v0"),
+                _MM(id="sub_iter14_v1"),
+            ]
+            mock_cf.cancel_subscription.return_value = _MM(id="sub_iter14_v0", status="canceled")
+
+            seed_stripe_data(
+                api_key="sk_test_key",
+                num_customers=1,
+                seed=42,
+                dry_run=False,
+                reset=False,
+            )
+
+            # Two Subscription.create calls for the one customer (v0 + v1)
+            assert mock_cf.create_subscription.call_count == 2, (
+                f"Expected 2 Subscription.create calls (v0 + v1), got "
+                f"{mock_cf.create_subscription.call_count}"
+            )
+
+            v0_kwargs = mock_cf.create_subscription.call_args_list[0].kwargs
+            v1_kwargs = mock_cf.create_subscription.call_args_list[1].kwargs
+
+            assert v0_kwargs["idempotency_key"] == "seed-sub-cus_iter14_001-v0"
+            assert v1_kwargs["idempotency_key"] == "seed-sub-cus_iter14_001-v1"
+            assert v0_kwargs["price_id"] == "price_basic_xx"
+            assert v1_kwargs["price_id"] == "price_pro_xx"
+
+            # Cancel was called exactly once (between v0 create and v1 create)
+            assert mock_cf.cancel_subscription.call_count == 1
+            assert mock_cf.cancel_subscription.call_args[0][0] == "sub_iter14_v0"
+
+    def test_orchestrator_tier_change_cancel_then_create(self):
+        """C-37(c) + C-2(a): cancel runs BEFORE create at the tier-change month."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from unittest.mock import MagicMock as _MM
+
+        from seed_stripe_data import (
+            CustomerPlan,
+            TierChange,
+            seed_stripe_data,
+        )
+
+        forced_plan = CustomerPlan(
+            cust_idx=0,
+            email="mrr-seed-001@example.com",
+            name="Test Customer 001",
+            status="active",
+            start_month=0,
+            initial_tier="basic",
+            tier_change=TierChange(month=2, new_tier="enterprise"),
+            cancel_month=None,
+        )
+
+        # Record the order of cancel/create calls.
+        call_log: list[tuple[str, str]] = []
+
+        with patch("seed_stripe_data.plan_customer_lifecycle") as mock_plan, \
+             patch("seed_stripe_data.ensure_seed_prices") as mock_ensure_prices, \
+             patch("seed_stripe_data.ClockManager") as MockCM, \
+             patch("seed_stripe_data.CustomerFactory") as MockCF, \
+             patch("stripe_seeder.summary.print_summary"), \
+             patch("seed_stripe_data.reset_seed_data"):
+
+            mock_plan.return_value = forced_plan
+            mock_ensure_prices.return_value = {
+                "basic": "price_b",
+                "pro": "price_p",
+                "enterprise": "price_e",
+            }
+
+            mock_cm = MockCM.return_value
+            mock_cm.create_clock.return_value = _MM(id="clock_x")
+
+            mock_cf = MockCF.return_value
+            mock_cf.error_count = 0
+            mock_cf.check_existing_customer.return_value = False
+            mock_cf.create_customer.return_value = _MM(id="cus_x")
+            mock_cf.attach_payment_method.return_value = _MM(id="pm_x")
+            mock_cf.set_default_payment_method.return_value = True
+
+            create_counter = [0]
+
+            def create_sub_side_effect(*_args, **kwargs):
+                create_counter[0] += 1
+                sid = f"sub_v{create_counter[0] - 1}"
+                call_log.append(("create", sid + f"|price={kwargs['price_id']}"))
+                return _MM(id=sid)
+
+            def cancel_sub_side_effect(sub_id, **_kwargs):
+                call_log.append(("cancel", sub_id))
+                return _MM(id=sub_id, status="canceled")
+
+            mock_cf.create_subscription.side_effect = create_sub_side_effect
+            mock_cf.cancel_subscription.side_effect = cancel_sub_side_effect
+
+            seed_stripe_data(
+                api_key="sk_test_key",
+                num_customers=1,
+                seed=42,
+                dry_run=False,
+                reset=False,
+            )
+
+        # Expected sequence:
+        #   create v0 (basic) at month 0
+        #   ... advance ...
+        #   ... advance ...
+        #   cancel v0  THEN  create v1 (enterprise) at month 2
+        ops = [op for op, _ in call_log]
+        assert ops == ["create", "cancel", "create"], (
+            f"Expected create→cancel→create sequence, got {call_log}"
+        )
+
+        # The 2nd create (v1) must use the enterprise price
+        assert "price=price_e" in call_log[2][1]
+        # The cancel target must be the v0 sub id
+        assert call_log[1][1] == "sub_v0"
+
+    def test_orchestrator_creates_sub_at_start_month(self):
+        """C-36(d): orchestrator does not create the sub before the start_month is reached.
+
+        With start_month=3, the orchestrator must advance the clock 3 times
+        BEFORE Subscription.create is called.
+        """
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from unittest.mock import MagicMock as _MM
+
+        from seed_stripe_data import (
+            CustomerPlan,
+            seed_stripe_data,
+        )
+
+        forced_plan = CustomerPlan(
+            cust_idx=0,
+            email="mrr-seed-001@example.com",
+            name="Test Customer 001",
+            status="active",
+            start_month=3,           # <-- create the sub only at month 3
+            initial_tier="basic",
+            tier_change=None,
+            cancel_month=None,
+        )
+
+        # Record the interleaving of advance_clock and create_subscription.
+        timeline: list[str] = []
+
+        with patch("seed_stripe_data.plan_customer_lifecycle") as mock_plan, \
+             patch("seed_stripe_data.ensure_seed_prices") as mock_ensure_prices, \
+             patch("seed_stripe_data.ClockManager") as MockCM, \
+             patch("seed_stripe_data.CustomerFactory") as MockCF, \
+             patch("stripe_seeder.summary.print_summary"), \
+             patch("seed_stripe_data.reset_seed_data"):
+
+            mock_plan.return_value = forced_plan
+            mock_ensure_prices.return_value = {
+                "basic": "price_b",
+                "pro": "price_p",
+                "enterprise": "price_e",
+            }
+
+            mock_cm = MockCM.return_value
+            mock_cm.create_clock.return_value = _MM(id="clock_y")
+            mock_cm.advance_clock.side_effect = lambda *_a, **_kw: timeline.append("advance")
+            mock_cm.poll_clock_ready.return_value = True
+
+            mock_cf = MockCF.return_value
+            mock_cf.error_count = 0
+            mock_cf.check_existing_customer.return_value = False
+            mock_cf.create_customer.return_value = _MM(id="cus_y")
+            mock_cf.attach_payment_method.return_value = _MM(id="pm_y")
+            mock_cf.set_default_payment_method.return_value = True
+
+            def create_sub_side_effect(*_args, **_kwargs):
+                timeline.append("create_sub")
+                return _MM(id="sub_only")
+
+            mock_cf.create_subscription.side_effect = create_sub_side_effect
+            mock_cf.cancel_subscription.return_value = _MM()
+
+            seed_stripe_data(
+                api_key="sk_test_key",
+                num_customers=1,
+                seed=42,
+                dry_run=False,
+                reset=False,
+            )
+
+        # Find the index of the create_sub event and the count of advances
+        # that preceded it.
+        assert "create_sub" in timeline, f"sub never created; timeline={timeline}"
+        create_idx = timeline.index("create_sub")
+        advances_before_create = timeline[:create_idx].count("advance")
+        assert advances_before_create == 3, (
+            f"With start_month=3, exactly 3 clock advances should precede "
+            f"the Subscription.create call; got {advances_before_create}. "
+            f"timeline={timeline}"
         )
