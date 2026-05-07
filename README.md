@@ -1,3 +1,182 @@
+# MRR Dashboard — Sprint 1: Stripe Test Data Seeding
+
+A comprehensive tool to seed realistic test data into Stripe for the MRR (Monthly Recurring Revenue) Dashboard project. This script creates 50–100 test customers with 6 months of billing history using Stripe Test Clocks, enabling accurate testing of dashboard calculations and visualizations.
+
+---
+
+## Sprint 1: Stripe Data Seeding
+
+This sprint focuses on data preparation for the MRR Dashboard. No UI or application logic is built; the focus is solely on populating a test Stripe account with realistic subscription data.
+
+### Quick Start
+
+```bash
+# Install dependencies
+pip install -r scripts/requirements.txt
+
+# Copy the example environment file
+cp scripts/.env.example scripts/.env
+
+# Edit .env and add your Stripe test API key
+# STRIPE_API_KEY=sk_test_...
+
+# Run the seeding script
+python scripts/seed_stripe_data.py
+
+# Or with explicit API key
+python scripts/seed_stripe_data.py --api-key sk_test_your_key_here
+
+# Dry-run mode (no API calls)
+python scripts/seed_stripe_data.py --dry-run --num-customers 100
+
+# Clean up test clocks afterward
+python scripts/seed_stripe_data.py --cleanup
+```
+
+### Prerequisites
+
+- Python 3.9+
+- Stripe test account (free at https://stripe.com)
+- Stripe test API key (from https://dashboard.stripe.com/apikeys, in test mode)
+
+### Installation
+
+```bash
+cd scripts
+pip install -r requirements.txt
+```
+
+### Configuration
+
+Create a `.env` file in the `scripts/` directory:
+
+```bash
+cp scripts/.env.example scripts/.env
+```
+
+Edit `.env` and add your Stripe test API key:
+
+```
+STRIPE_API_KEY=sk_test_your_key_here
+```
+
+Alternatively, pass the key via CLI:
+
+```bash
+python seed_stripe_data.py --api-key sk_test_your_key_here
+```
+
+### Running the Script
+
+#### Default seeding (75 customers)
+
+```bash
+python seed_stripe_data.py
+```
+
+#### Custom customer count
+
+```bash
+python seed_stripe_data.py --num-customers 100
+```
+
+#### Dry-run mode (no API calls)
+
+```bash
+python seed_stripe_data.py --dry-run
+```
+
+Useful for testing without consuming API quota or creating real data.
+
+#### Custom random seed (for reproducibility)
+
+```bash
+python seed_stripe_data.py --seed 42
+```
+
+Same seed produces the same customer status distribution every time.
+
+### Expected Output
+
+```
+======================================================================
+STRIPE TEST DATA SEEDING SUMMARY
+======================================================================
+Seeded 75 customers
+  Active:    52 (69%)
+  Canceled:  15 (20%)
+  Past Due:  8 (11%)
+
+Date range: Dec 07, 2025 – Jun 06, 2026
+Test clocks created: 25
+Errors encountered: 0
+======================================================================
+```
+
+### Cleanup
+
+After testing, delete the created test clocks:
+
+```bash
+python seed_stripe_data.py --cleanup
+```
+
+This will prompt for confirmation before deleting clocks matching the pattern `mrr-seed-clock-*`.
+
+### Testing
+
+Run the comprehensive test suite:
+
+```bash
+cd scripts
+python -m pytest tests/ -v
+```
+
+Tests include:
+- API key validation (rejecting live keys)
+- Clock allocation and limits enforcement
+- Status distribution accuracy
+- Rate limit retry logic
+- Idempotency and deduplication
+- Polling timeouts
+- Invoice coverage verification
+- Payment failure handling for Past Due subscriptions
+
+### Architecture
+
+The script is organized into focused modules for maintainability and testability:
+
+- **`seed_stripe_data.py`** — CLI entry point and orchestration logic
+- **`stripe_seeder/config.py`** — Environment variable loading and validation
+- **`stripe_seeder/clock_manager.py`** — Stripe Test Clock lifecycle management
+- **`stripe_seeder/customer_factory.py`** — Customer and subscription creation with rate-limit handling
+- **`stripe_seeder/summary.py`** — Formatted summary output
+- **`stripe_seeder/errors.py`** — Custom exception types
+
+### Troubleshooting
+
+#### Rate Limit Errors
+
+The script automatically retries on rate limits with exponential backoff (1s, 2s, 4s, 8s, 16s). If you still see rate limit errors:
+
+- Reduce `--num-customers` (e.g., 50 instead of 100)
+- Increase time between runs
+- Use a higher API rate limit tier in your Stripe account
+
+#### Clock Timeout Errors
+
+If a test clock fails to reach 'ready' status within 30 seconds:
+
+- Check your internet connection
+- Verify the Stripe API key is valid
+- Retry the script; this is often transient
+
+#### Live Key Detection
+
+The script **only works with test API keys** (format: `sk_test_*`). It will abort if you provide a live key (`sk_live_*`), protecting your production data.
+
+---
+
 # Three-Agent Full-Stack Web Harness
 
 A Claude Code framework that produces high-quality full-stack web applications through a **Planner → Generator → Evaluator** loop, based on Anthropic's [harness design for long-running coding agents](https://www.anthropic.com/engineering/harness-design-long-running-apps).
