@@ -19,11 +19,12 @@ from dotenv import load_dotenv
 from stripe_seeder.clock_manager import ClockManager
 from stripe_seeder.config import load_api_key
 from stripe_seeder.customer_factory import CustomerFactory
-from stripe_seeder.errors import ClockTimeoutError, InvalidAPIKeyError
+from stripe_seeder.errors import ClockTimeoutError, InvalidAPIKeyError, PriceCreationError
+from stripe_seeder.price_manager import ensure_seed_price
 from stripe_seeder.summary import print_summary
 
-# Load .env file from scripts directory
-dotenv_path = Path(__file__).parent / ".env"
+# Load .env from the project root (one level above scripts/).
+dotenv_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path)
 
 # Configure logging
@@ -121,6 +122,14 @@ def seed_stripe_data(
     logger.info(f"Starting Stripe test data seeding for {num_customers} customers")
     logger.info(f"Using random seed {seed} for reproducibility")
 
+    # Resolve price_id at startup (find-or-create in live mode, placeholder in dry_run)
+    if price_id is None:
+        try:
+            price_id = ensure_seed_price(api_key, dry_run=dry_run)
+        except PriceCreationError as e:
+            logger.error(f"Failed to resolve seed Price: {e}")
+            sys.exit(1)
+
     # Initialize managers
     clock_manager = ClockManager(api_key, dry_run=dry_run)
     customer_factory = CustomerFactory(api_key, dry_run=dry_run)
@@ -214,7 +223,7 @@ def seed_stripe_data(
                 idempotency_key = f"seed-sub-{customer_id}-{sub_idx}"
                 subscription = customer_factory.create_subscription(
                     customer_id=customer_id,
-                    price_id=price_id or "price_test_mrr",
+                    price_id=price_id,
                     test_clock_id=clock_id,
                     idempotency_key=idempotency_key,
                 )

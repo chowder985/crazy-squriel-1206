@@ -29,3 +29,9 @@ class InvalidAPIResponseError(StripeSeederError):
     """Raised when Stripe API response is invalid or missing required fields."""
 
     pass
+
+
+class PriceCreationError(StripeSeederError):
+    """Raised when Price or Product creation fails."""
+
+    pass

@@ -593,3 +593,151 @@ class TestOrchestration:
             assert name_value.startswith(
                 "mrr-seed-clock-"
             ), f"Clock name should start with mrr-seed-clock-, got {name_value}"
+
+
+class TestPriceManager:
+    """Test Price resolution and find-or-create logic."""
+
+    def test_ensure_seed_price_finds_existing(self):
+        """C-29(a, b): ensure_seed_price finds and returns existing recurring USD Price."""
+        from stripe_seeder.price_manager import ensure_seed_price
+
+        mock_product = Mock()
+        mock_product.id = "prod_existing_001"
+        mock_product.name = "MRR Seed Plan"
+
+        mock_price = Mock()
+        mock_price.id = "price_existing_usd"
+
+        with patch("stripe.Product.list") as mock_product_list, patch(
+            "stripe.Price.list"
+        ) as mock_price_list:
+            mock_product_list.return_value = Mock(data=[mock_product])
+            mock_price_list.return_value = Mock(data=[mock_price])
+
+            price_id = ensure_seed_price(api_key="sk_test_key", dry_run=False)
+
+            assert price_id == "price_existing_usd"
+            mock_product_list.assert_called_once()
+            mock_price_list.assert_called_once()
+
+    def test_ensure_seed_price_creates_when_absent(self):
+        """C-29(a, b): ensure_seed_price creates Product and Price when none exist."""
+        from stripe_seeder.price_manager import ensure_seed_price
+
+        mock_created_product = Mock()
+        mock_created_product.id = "prod_new_001"
+
+        mock_created_price = Mock()
+        mock_created_price.id = "price_new_usd"
+
+        with patch("stripe.Product.list") as mock_product_list, patch(
+            "stripe.Product.create"
+        ) as mock_product_create, patch("stripe.Price.create") as mock_price_create:
+            mock_product_list.return_value = Mock(data=[])  # No existing products
+            mock_product_create.return_value = mock_created_product
+            mock_price_create.return_value = mock_created_price
+
+            price_id = ensure_seed_price(api_key="sk_test_key", dry_run=False)
+
+            assert price_id == "price_new_usd"
+            mock_product_list.assert_called_once()
+            mock_product_create.assert_called_once()
+            mock_price_create.assert_called_once()
+
+    def test_subscription_uses_resolved_price(self):
+        """C-29(c): Full orchestration uses resolved price_id, never 'price_test_mrr'."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from seed_stripe_data import seed_stripe_data
+
+        mock_clock = Mock()
+        mock_clock.id = "clock_test_001"
+
+        mock_customer = Mock()
+        mock_customer.id = "cus_test_001"
+
+        mock_subscription = Mock()
+        mock_subscription.id = "sub_test_001"
+
+        with patch("seed_stripe_data.ensure_seed_price") as mock_ensure_price, \
+             patch("stripe_seeder.clock_manager.ClockManager.create_clock") as mock_create_clock, \
+             patch("stripe_seeder.clock_manager.ClockManager.advance_clock") as mock_advance_clock, \
+             patch("stripe_seeder.customer_factory.CustomerFactory.check_existing_customer") as mock_check_cust, \
+             patch("stripe_seeder.customer_factory.CustomerFactory.create_customer") as mock_cust_create, \
+             patch("stripe_seeder.customer_factory.CustomerFactory.attach_payment_method") as mock_attach_pm, \
+             patch("stripe_seeder.customer_factory.CustomerFactory.create_subscription") as mock_sub_create, \
+             patch("stripe_seeder.summary.print_summary"):
+
+            mock_ensure_price.return_value = "price_resolved_real_001"
+            mock_create_clock.return_value = mock_clock
+            mock_advance_clock.return_value = None
+            mock_check_cust.return_value = False
+            mock_cust_create.return_value = mock_customer
+            mock_attach_pm.return_value = Mock()
+            mock_sub_create.return_value = mock_subscription
+
+            seed_stripe_data(
+                api_key="sk_test_key",
+                num_customers=3,
+                seed=42,
+                dry_run=False,
+                price_id=None,
+            )
+
+            # Verify ensure_seed_price was called (it's called with positional args in the code)
+            assert mock_ensure_price.call_count == 1
+            call_args, call_kwargs = mock_ensure_price.call_args
+            assert call_args[0] == "sk_test_key"
+            assert call_kwargs["dry_run"] is False
+
+            # Verify all subscription.create calls use the resolved price, never mock string
+            for call in mock_sub_create.call_args_list:
+                kwargs = call[1]
+                assert kwargs["price_id"] == "price_resolved_real_001"
+                assert kwargs["price_id"] != "price_test_mrr"
+
+    def test_price_creation_failure_aborts(self):
+        """C-29(d): Script exits with error if Price creation fails."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from seed_stripe_data import seed_stripe_data
+        from stripe_seeder.errors import PriceCreationError
+
+        with patch(
+            "stripe_seeder.price_manager.ensure_seed_price"
+        ) as mock_ensure_price:
+            # Mock ensure_seed_price to raise PriceCreationError
+            mock_ensure_price.side_effect = PriceCreationError(
+                "Product creation failed: InvalidRequestError(...)"
+            )
+
+            # Verify that seed_stripe_data raises SystemExit
+            with pytest.raises(SystemExit) as exc_info:
+                seed_stripe_data(
+                    api_key="sk_test_key",
+                    num_customers=3,
+                    seed=42,
+                    dry_run=False,
+                    price_id=None,
+                )
+
+            # Verify it exited with non-zero status
+            assert exc_info.value.code == 1
+
+    def test_dry_run_uses_placeholder_price(self):
+        """C-29: In dry_run mode, ensure_seed_price returns placeholder without API calls."""
+        from stripe_seeder.price_manager import ensure_seed_price
+
+        with patch("stripe.Product.list") as mock_product_list:
+            price_id = ensure_seed_price(api_key="sk_test_key", dry_run=True)
+
+            # Should return placeholder in dry-run mode
+            assert price_id == "price_test_mrr_dryrun"
+
+            # Should NOT call any Stripe API methods
+            mock_product_list.assert_not_called()

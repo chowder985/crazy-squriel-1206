@@ -14,8 +14,8 @@ This sprint focuses on data preparation for the MRR Dashboard. No UI or applicat
 # Install dependencies
 pip install -r scripts/requirements.txt
 
-# Copy the example environment file
-cp scripts/.env.example scripts/.env
+# Copy the example environment file to the PROJECT ROOT (not scripts/)
+cp scripts/.env.example .env
 
 # Edit .env and add your Stripe test API key
 # STRIPE_API_KEY=sk_test_...
@@ -48,10 +48,10 @@ pip install -r requirements.txt
 
 ### Configuration
 
-Create a `.env` file in the `scripts/` directory:
+Create a `.env` file at the **project root** (one level above `scripts/`):
 
 ```bash
-cp scripts/.env.example scripts/.env
+cp scripts/.env.example .env
 ```
 
 Edit `.env` and add your Stripe test API key:
