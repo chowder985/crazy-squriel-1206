@@ -144,8 +144,7 @@ Tests include:
 
 ### Smoke Testing Against Real Stripe
 
-The unit test suite is fully mocked and does not hit the Stripe API. Before
-trusting a new release, run the live smoke tests against your test-mode key:
+The unit test suite is fully mocked and does not hit the Stripe API. **Before declaring Sprint 1 complete, you MUST run the live smoke tests against your test-mode key:**
 
 ```bash
 export STRIPE_API_KEY=sk_test_...
@@ -154,10 +153,13 @@ RUN_LIVE_TESTS=1 python -m pytest scripts/tests/test_live_smoke.py -v
 
 These tests:
 - Verify `ensure_seed_price` is idempotent across calls (same Price ID returned).
-- Create a real customer + subscription on a test clock to confirm the resolved
-  Price ID works in `stripe.Subscription.create`.
-- Clean up the test clock (and its customer/subscription) at the end. The seed
-  Product+Price are intentionally left in place for re-use.
+- Create a real customer + subscription on a test clock, explicitly:
+  - Attaching a test card payment method (`pm_card_visa`).
+  - Setting the payment method as the customer's default via `Customer.modify()` (C-32).
+  - Verifying the subscription is created without the "no default payment method" error.
+  - Cleaning up the test clock (and its customer/subscription). The seed Product+Price are left in place for re-use.
+
+**Requirement for Pass:** The live smoke test stdout must be posted to `.harness/evaluations/sprint-01-evaluation.md` under the section "## Live Smoke Test Evidence (Required for Pass)" showing both tests passed. Without this evidence, the sprint cannot close.
 
 Without `RUN_LIVE_TESTS=1`, the live smoke tests are skipped automatically.
 

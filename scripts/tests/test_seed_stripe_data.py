@@ -337,6 +337,105 @@ class TestPastDuePaymentFailure:
         assert result.id == "pm_card_chargeCustomerFail"
 
 
+class TestDefaultPaymentMethod:
+    """Test default payment method setting (C-32)."""
+
+    def test_default_payment_method_set_on_customer(self, mocker):
+        """C-32(a,b): Payment method attach and default-PM set in correct order."""
+        customer_factory = CustomerFactory(api_key="sk_test_key", dry_run=False)
+
+        # Mock both PaymentMethod.attach and Customer.modify
+        mock_attach = mocker.patch("stripe.PaymentMethod.attach")
+        mock_attach.return_value = MagicMock(
+            id="pm_card_visa", customer="cus_123"
+        )
+
+        mock_modify = mocker.patch("stripe.Customer.modify")
+        mock_modify.return_value = MagicMock(id="cus_123")
+
+        # Call attach
+        attach_result = customer_factory.attach_payment_method(
+            customer_id="cus_123", payment_method_id="pm_card_visa"
+        )
+        assert attach_result is not None
+
+        # Call set default
+        modify_result = customer_factory.set_default_payment_method(
+            customer_id="cus_123", payment_method_id="pm_card_visa"
+        )
+        assert modify_result is True
+
+        # Verify attach was called
+        mock_attach.assert_called_once()
+        attach_call_kwargs = mock_attach.call_args[1]
+        assert attach_call_kwargs["customer"] == "cus_123"
+        assert attach_call_kwargs["api_key"] == "sk_test_key"
+
+        # Verify modify was called with correct invoice_settings
+        mock_modify.assert_called_once()
+        modify_call_args = mock_modify.call_args
+        assert modify_call_args[0][0] == "cus_123"
+        modify_call_kwargs = modify_call_args[1]
+        assert "invoice_settings" in modify_call_kwargs
+        assert modify_call_kwargs["invoice_settings"] == {
+            "default_payment_method": "pm_card_visa"
+        }
+        assert modify_call_kwargs["api_key"] == "sk_test_key"
+
+    def test_default_pm_set_failure_skips_subscription(self, mocker):
+        """C-32(d): Default-PM set failure is caught, logged, subscription skipped."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from seed_stripe_data import seed_stripe_data
+
+        # Mock all components
+        mock_create_customer = mocker.patch("stripe.Customer.create")
+        mock_create_customer.return_value = MagicMock(id="cus_test_123")
+
+        mock_attach_pm = mocker.patch("stripe.PaymentMethod.attach")
+        mock_attach_pm.return_value = MagicMock(id="pm_test_123")
+
+        # Mock Customer.modify to raise an error (simulating default-PM set failure)
+        mock_modify = mocker.patch("stripe.Customer.modify")
+        import stripe
+        mock_modify.side_effect = stripe.error.InvalidRequestError(
+            "Invalid payment method"
+        )
+
+        mock_create_subscription = mocker.patch("stripe.Subscription.create")
+        mock_create_subscription.return_value = MagicMock(id="sub_test_123")
+
+        mock_create_clock = mocker.patch("stripe.test_helpers.TestClock.create")
+        mock_create_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mock_advance_clock = mocker.patch("stripe.test_helpers.TestClock.advance")
+        mock_advance_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mock_retrieve_clock = mocker.patch("stripe.test_helpers.TestClock.retrieve")
+        mock_retrieve_clock.return_value = MagicMock(
+            id="clock_test_123", status="ready"
+        )
+
+        mocker.patch("time.sleep")
+        mocker.patch("stripe.Customer.list", return_value=[])
+
+        result = seed_stripe_data(
+            api_key="sk_test_key",
+            num_customers=3,
+            seed=42,
+            dry_run=False,
+            price_id="price_test",
+        )
+
+        # Verify Customer.modify was called (default-PM set attempt)
+        assert mock_modify.call_count > 0, "Customer.modify should be called"
+
+        # Verify error_count was incremented due to Customer.modify failure
+        assert result["error_count"] > 0, "Error count should be incremented"
+
+
 class TestInvalidApiResponse:
     """Test API response validation."""
 

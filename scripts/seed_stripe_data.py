@@ -201,21 +201,37 @@ def seed_stripe_data(
             # Attach payment method based on status
             if status == STATUS_PAST_DUE:
                 # Past-due customers get the failing card token
-                pm_result = customer_factory.attach_payment_method(
-                    customer_id, "pm_card_chargeCustomerFail"
-                )
+                pm_id = "pm_card_chargeCustomerFail"
+                pm_result = customer_factory.attach_payment_method(customer_id, pm_id)
                 if pm_result:
-                    logger.info(
-                        f"Customer {customer_id} marked for past-due "
-                        f"with pm_card_chargeCustomerFail"
-                    )
+                    # Set as default payment method for invoicing
+                    if customer_factory.set_default_payment_method(customer_id, pm_id):
+                        logger.info(
+                            f"Customer {customer_id} marked for past-due "
+                            f"with pm_card_chargeCustomerFail and set as default"
+                        )
+                    else:
+                        error_count += 1
+                        logger.warning(
+                            f"Failed to set default payment method for customer {customer_id}; "
+                            f"skipping subscription creation"
+                        )
+                        continue
             else:
                 # Active and canceled customers get normal test card
-                pm_result = customer_factory.attach_payment_method(
-                    customer_id, "pm_card_visa"
-                )
+                pm_id = "pm_card_visa"
+                pm_result = customer_factory.attach_payment_method(customer_id, pm_id)
                 if pm_result:
-                    logger.info(f"Customer {customer_id} attached normal payment method")
+                    # Set as default payment method for invoicing
+                    if customer_factory.set_default_payment_method(customer_id, pm_id):
+                        logger.info(f"Customer {customer_id} attached normal payment method")
+                    else:
+                        error_count += 1
+                        logger.warning(
+                            f"Failed to set default payment method for customer {customer_id}; "
+                            f"skipping subscription creation"
+                        )
+                        continue
 
             # Create 1-3 subscriptions per customer (deterministic from RNG)
             num_subs = rng.randint(1, min(3, SUBSCRIPTIONS_PER_CUSTOMER))

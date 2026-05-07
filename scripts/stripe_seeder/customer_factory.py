@@ -254,3 +254,42 @@ class CustomerFactory:
             )
             self.error_count += 1
             return None
+
+    def set_default_payment_method(
+        self, customer_id: str, payment_method_id: str
+    ) -> bool:
+        """
+        Set a payment method as the customer's default for invoicing.
+
+        Args:
+            customer_id: Customer ID
+            payment_method_id: Payment method ID to set as default
+
+        Returns:
+            True if successful, False if failed
+        """
+        if self.dry_run:
+            logger.info(
+                f"[DRY RUN] Would set default payment method {payment_method_id} "
+                f"on customer {customer_id}"
+            )
+            return True
+
+        try:
+            stripe.Customer.modify(
+                customer_id,
+                invoice_settings={"default_payment_method": payment_method_id},
+                api_key=self.api_key,
+            )
+            logger.info(
+                f"Set default payment method {payment_method_id} "
+                f"on customer {customer_id}"
+            )
+            return True
+        except stripe.error.StripeError as e:
+            logger.error(
+                f"Error setting default payment method {payment_method_id} "
+                f"on customer {customer_id}: {e}"
+            )
+            self.error_count += 1
+            return False

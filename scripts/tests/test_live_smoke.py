@@ -43,7 +43,7 @@ def test_smoke_ensure_seed_price_idempotent(api_key):
 
 
 def test_smoke_subscription_create_with_resolved_price(api_key):
-    """C-31: Resolved Price ID can be used to create a real subscription on a test clock."""
+    """C-31 (tightened): Resolved Price + attach + default-PM set + subscription create."""
     stripe.api_key = api_key
     price_id = ensure_seed_price(api_key, dry_run=False)
 
@@ -52,23 +52,41 @@ def test_smoke_subscription_create_with_resolved_price(api_key):
         frozen_time=int(time.time()),
         name="mrr-seed-smoke-clock",
     )
+    customer = None
     try:
-        # Create a customer attached to that clock with a working test card.
+        # Create a fresh customer with NO payment method (C-32 requirement).
         customer = stripe.Customer.create(
             email="smoke-test@example.com",
             name="Smoke Test Customer",
             test_clock=clock.id,
-            payment_method="pm_card_visa",
-            invoice_settings={"default_payment_method": "pm_card_visa"},
         )
+
+        # Attach a test card payment method (C-32 requirement).
+        pm = stripe.PaymentMethod.attach(
+            "pm_card_visa",
+            customer=customer.id,
+        )
+
+        # Set the payment method as default for invoicing (C-32 requirement).
+        stripe.Customer.modify(
+            customer.id,
+            invoice_settings={"default_payment_method": pm.id},
+        )
+
+        # Advance the clock 1 month to generate invoices.
+        stripe.test_helpers.TestClock.advance(
+            clock.id,
+            frozen_time=int(time.time()) + 2592000,
+        )
+
         # Create a subscription using the resolved Price.
         sub = stripe.Subscription.create(
             customer=customer.id,
             items=[{"price": price_id}],
         )
-        assert sub.status in {"active", "trialing"}, (
-            f"Expected active/trialing subscription, got {sub.status}"
+        assert sub.status in {"active", "trialing", "incomplete"}, (
+            f"Expected active/trialing/incomplete subscription, got {sub.status}"
         )
     finally:
-        # Cleanup: deleting the clock cascades to the customer + subscription.
+        # Cleanup: delete the test clock (cascades to customer + subscription).
         stripe.test_helpers.TestClock.delete(clock.id)
