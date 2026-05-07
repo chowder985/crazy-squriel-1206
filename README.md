@@ -142,6 +142,25 @@ Tests include:
 - Invoice coverage verification
 - Payment failure handling for Past Due subscriptions
 
+### Smoke Testing Against Real Stripe
+
+The unit test suite is fully mocked and does not hit the Stripe API. Before
+trusting a new release, run the live smoke tests against your test-mode key:
+
+```bash
+export STRIPE_API_KEY=sk_test_...
+RUN_LIVE_TESTS=1 python -m pytest scripts/tests/test_live_smoke.py -v
+```
+
+These tests:
+- Verify `ensure_seed_price` is idempotent across calls (same Price ID returned).
+- Create a real customer + subscription on a test clock to confirm the resolved
+  Price ID works in `stripe.Subscription.create`.
+- Clean up the test clock (and its customer/subscription) at the end. The seed
+  Product+Price are intentionally left in place for re-use.
+
+Without `RUN_LIVE_TESTS=1`, the live smoke tests are skipped automatically.
+
 ### Architecture
 
 The script is organized into focused modules for maintainability and testability:

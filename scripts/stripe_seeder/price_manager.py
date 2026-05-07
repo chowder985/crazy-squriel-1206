@@ -51,19 +51,17 @@ def ensure_seed_price(api_key: str, dry_run: bool = False) -> str:
     stripe.api_key = api_key
 
     try:
-        # Search for existing Product with metadata
+        # Search for existing Product with metadata using the documented search endpoint
         logger.debug(
             f"Searching for existing Product with metadata {SEED_PRODUCT_METADATA_KEY}={SEED_PRODUCT_METADATA_VALUE}"
         )
-        products = stripe.Product.list(
-            metadata={SEED_PRODUCT_METADATA_KEY: SEED_PRODUCT_METADATA_VALUE},
-            active=True,
-            limit=100,
-        )
+        query = f"metadata['{SEED_PRODUCT_METADATA_KEY}']:'{SEED_PRODUCT_METADATA_VALUE}' AND active:'true'"
+        result = stripe.Product.search(query=query, limit=10, api_key=api_key)
+        products = result.data
 
         # Check if any product found
-        if products.data:
-            product = products.data[0]
+        if products:
+            product = products[0]
             logger.debug(f"Found existing Product: {product.id} ({product.name})")
 
             # Search for recurring USD Price on this product
@@ -71,7 +69,8 @@ def ensure_seed_price(api_key: str, dry_run: bool = False) -> str:
                 product=product.id,
                 type="recurring",
                 currency=SEED_PRICE_CURRENCY,
-                limit=100,
+                limit=10,
+                api_key=api_key,
             )
 
             if prices.data:
@@ -85,7 +84,7 @@ def ensure_seed_price(api_key: str, dry_run: bool = False) -> str:
             logger.debug("No existing Product found with mrr-seed-plan metadata, creating new...")
 
         # Create new Product if we didn't find one
-        if not products.data:
+        if not products:
             try:
                 product = stripe.Product.create(
                     name=SEED_PRODUCT_NAME,
@@ -101,7 +100,7 @@ def ensure_seed_price(api_key: str, dry_run: bool = False) -> str:
                 raise PriceCreationError(f"Product creation failed: {e}") from e
         else:
             # Use the product we found earlier
-            product = products.data[0]
+            product = products[0]
 
         # Create recurring Price
         try:
@@ -113,6 +112,7 @@ def ensure_seed_price(api_key: str, dry_run: bool = False) -> str:
                     "interval": SEED_PRICE_INTERVAL,
                     "interval_count": 1,
                 },
+                api_key=api_key,
             )
             logger.info(f"Resolved seed Price: {price.id} (newly created)")
             return price.id

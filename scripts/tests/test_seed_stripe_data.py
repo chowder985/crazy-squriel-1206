@@ -609,16 +609,21 @@ class TestPriceManager:
         mock_price = Mock()
         mock_price.id = "price_existing_usd"
 
-        with patch("stripe.Product.list") as mock_product_list, patch(
+        with patch("stripe.Product.search") as mock_product_search, patch(
             "stripe.Price.list"
         ) as mock_price_list:
-            mock_product_list.return_value = Mock(data=[mock_product])
+            mock_product_search.return_value = Mock(data=[mock_product])
             mock_price_list.return_value = Mock(data=[mock_price])
 
             price_id = ensure_seed_price(api_key="sk_test_key", dry_run=False)
 
             assert price_id == "price_existing_usd"
-            mock_product_list.assert_called_once()
+            mock_product_search.assert_called_once()
+            # Verify the search query contains metadata lookup
+            call_kwargs = mock_product_search.call_args[1]
+            assert "query" in call_kwargs
+            assert "mrr-seed-plan" in call_kwargs["query"]
+            assert "true" in call_kwargs["query"]
             mock_price_list.assert_called_once()
 
     def test_ensure_seed_price_creates_when_absent(self):
@@ -631,17 +636,17 @@ class TestPriceManager:
         mock_created_price = Mock()
         mock_created_price.id = "price_new_usd"
 
-        with patch("stripe.Product.list") as mock_product_list, patch(
+        with patch("stripe.Product.search") as mock_product_search, patch(
             "stripe.Product.create"
         ) as mock_product_create, patch("stripe.Price.create") as mock_price_create:
-            mock_product_list.return_value = Mock(data=[])  # No existing products
+            mock_product_search.return_value = Mock(data=[])  # No existing products
             mock_product_create.return_value = mock_created_product
             mock_price_create.return_value = mock_created_price
 
             price_id = ensure_seed_price(api_key="sk_test_key", dry_run=False)
 
             assert price_id == "price_new_usd"
-            mock_product_list.assert_called_once()
+            mock_product_search.assert_called_once()
             mock_product_create.assert_called_once()
             mock_price_create.assert_called_once()
 
@@ -733,11 +738,40 @@ class TestPriceManager:
         """C-29: In dry_run mode, ensure_seed_price returns placeholder without API calls."""
         from stripe_seeder.price_manager import ensure_seed_price
 
-        with patch("stripe.Product.list") as mock_product_list:
+        with patch("stripe.Product.search") as mock_product_search:
             price_id = ensure_seed_price(api_key="sk_test_key", dry_run=True)
 
             # Should return placeholder in dry-run mode
             assert price_id == "price_test_mrr_dryrun"
 
             # Should NOT call any Stripe API methods
-            mock_product_list.assert_not_called()
+            mock_product_search.assert_not_called()
+
+    def test_lookup_uses_documented_endpoint(self):
+        """C-30: Lookup uses stripe.Product.search (documented endpoint), never Product.list(metadata=...)."""
+        from stripe_seeder.price_manager import ensure_seed_price
+
+        mock_product = Mock()
+        mock_product.id = "prod_test_001"
+
+        mock_price = Mock()
+        mock_price.id = "price_test_001"
+
+        with patch("stripe.Product.search") as mock_search, \
+             patch("stripe.Product.list") as mock_list, \
+             patch("stripe.Price.list") as mock_price_list:
+            # Configure mocks
+            mock_search.return_value = Mock(data=[mock_product])
+            mock_price_list.return_value = Mock(data=[mock_price])
+
+            price_id = ensure_seed_price(api_key="sk_test_key", dry_run=False)
+
+            # Assert Product.search was called
+            assert mock_search.called, "stripe.Product.search should be called"
+            # Assert Product.list was NOT called (the broken endpoint)
+            assert not mock_list.called, "stripe.Product.list(metadata=...) should NOT be called"
+            # Verify search was called with correct query
+            call_kwargs = mock_search.call_args[1]
+            assert "query" in call_kwargs
+            assert "metadata['mrr-seed-plan']" in call_kwargs["query"]
+            assert price_id == "price_test_001"
