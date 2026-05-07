@@ -1,0 +1,25 @@
+# Harness runtime artifacts (not committed; per-run state)
+.harness/
+
+# Common build/dep noise
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+.env.local
+.DS_Store
+dist/
+build/
+.vite/
+.next/
+.cache/
+*.sqlite
+*.sqlite3
+*.db
+
+# Editor / OS
+.idea/
+.vscode/
+*.swp
