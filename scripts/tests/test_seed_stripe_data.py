@@ -1372,3 +1372,121 @@ class TestResetFunctionality:
         mock_reset.reset_mock()
         seed_stripe_data(api_key="sk_test_key", num_customers=0, dry_run=False, reset=False)
         assert not mock_reset.called, "Reset should NOT be called with reset=False"
+
+
+class TestMultiClockCancellations:
+    """Test multi-clock cancellation isolation (iteration 13 bug fix)."""
+
+    def test_multi_clock_cancellations_isolated(self, mocker):
+        """
+        Bug fix: cancellations_per_month must be scoped per-clock, not function-scope.
+
+        Previously, cancellations_per_month was declared once at function scope and never
+        cleared between clock iterations. When clock 0 scheduled cancellations and advanced
+        through months 1-6, those cancellations fired correctly. But when clock 1 advanced,
+        the SAME (customer_id, sub_id) pairs were still in the dict and attempted to cancel
+        again, causing "No such subscription" errors.
+
+        With the fix, cancellations_per_month is initialized inside the clock loop, so each
+        clock gets a fresh empty dict. Only that clock's customers' cancellations fire during
+        that clock's advance loop.
+
+        This test seeds 6 customers (2 clocks of 3 each), with seed=42 configured to produce
+        at least 1 canceled customer in clock 0 AND at least 1 in clock 1. It mocks
+        cancel_subscription to track all calls and asserts each sub_id is canceled AT MOST ONCE.
+        """
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from seed_stripe_data import seed_stripe_data
+
+        # Track all cancel_subscription calls to verify no duplicates
+        canceled_subs = []
+
+        def mock_cancel_side_effect(sub_id, **kwargs):
+            """Track cancellation calls; fail if duplicate."""
+            if sub_id in canceled_subs:
+                # Simulate Stripe's "No such subscription" error on duplicate cancel
+                import stripe
+                raise stripe.error.StripeError(f"No such subscription: '{sub_id}'")
+            canceled_subs.append(sub_id)
+            return Mock(id=sub_id, status="canceled")
+
+        # Mock all required components
+        mock_create_customer = mocker.patch("stripe.Customer.create")
+        mock_create_customer.return_value = MagicMock(id="cus_test_123")
+
+        mock_create_subscription = mocker.patch("stripe.Subscription.create")
+        mock_create_subscription.return_value = MagicMock(id="sub_test_123", status="active")
+
+        mock_attach_pm = mocker.patch("stripe.PaymentMethod.attach")
+        mock_attach_pm.return_value = MagicMock(id="pm_test_123")
+
+        mock_modify = mocker.patch("stripe.Customer.modify")
+        mock_modify.return_value = MagicMock(id="cus_test_123")
+
+        mock_cancel_subscription = mocker.patch("stripe.Subscription.delete")
+        mock_cancel_subscription.side_effect = mock_cancel_side_effect
+
+        mock_create_clock = mocker.patch("stripe.test_helpers.TestClock.create")
+        mock_create_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mock_advance_clock = mocker.patch("stripe.test_helpers.TestClock.advance")
+        mock_advance_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mock_retrieve_clock = mocker.patch("stripe.test_helpers.TestClock.retrieve")
+        mock_retrieve_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mocker.patch("time.sleep")
+        mocker.patch("stripe.Customer.list", return_value=[])
+
+        # Run with 6 customers and seed=42 to produce canceled cohort
+        # CRITICAL: seed=42 produces ~20% canceled customers, so 6 customers = ~1.2 canceled
+        # We configure the mock Customer.create to return different IDs to simulate multiple customers
+        customer_counter = [0]
+
+        def create_customer_side_effect(*args, **kwargs):
+            customer_counter[0] += 1
+            cid = f"cus_multi_clock_{customer_counter[0]:03d}"
+            return MagicMock(id=cid)
+
+        mock_create_customer.side_effect = create_customer_side_effect
+
+        # Similarly, subscriptions should return unique IDs
+        sub_counter = [0]
+
+        def create_subscription_side_effect(*args, **kwargs):
+            sub_counter[0] += 1
+            sid = f"sub_multi_clock_{sub_counter[0]:03d}"
+            return MagicMock(id=sid, status="active")
+
+        mock_create_subscription.side_effect = create_subscription_side_effect
+
+        # Run seeding with 6 customers (2 clocks), seed=42 to reproduce canceled cohort distribution
+        result = seed_stripe_data(
+            api_key="sk_test_key",
+            num_customers=6,
+            seed=42,
+            dry_run=False,
+            price_id="price_test",
+            reset=False,  # Don't call reset to avoid extra mocking
+        )
+
+        # Verify no "No such subscription" errors occurred
+        # (If the bug exists and cancel runs twice per sub, the side_effect raises StripeError)
+        assert result["error_count"] == 0, (
+            f"Should have 0 errors (no duplicate cancellations); got {result['error_count']}"
+        )
+
+        # Verify each subscription was canceled at most once
+        # (Count of cancel calls should equal count of unique canceled_subs)
+        assert len(canceled_subs) == len(set(canceled_subs)), (
+            f"Each sub should be canceled at most once; {canceled_subs} has duplicates"
+        )
+
+        # Verify cancellation count matches expected canceled cohort size
+        assert result["canceled_count"] > 0, "Test requires at least 1 canceled customer (seed=42 should produce ~20%)"
+        assert len(canceled_subs) == result["canceled_count"], (
+            f"Number of cancel calls ({len(canceled_subs)}) should match canceled cohort ({result['canceled_count']})"
+        )

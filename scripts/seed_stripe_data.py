@@ -163,7 +163,6 @@ def seed_stripe_data(
 
     # Track subscriptions per customer for limit enforcement and cancellation scheduling
     customer_subscriptions: dict = {}  # customer_id -> list of sub_ids
-    cancellations_per_month: dict = {}  # month -> list of (customer_id, sub_id) to cancel
 
     # Track clocks created in this run for cleanup_after
     created_clock_ids: list[str] = []
@@ -182,6 +181,10 @@ def seed_stripe_data(
                 created_clock_ids.append(clock_id)
 
             logger.info(f"Created clock {clock_id} with name {clock_name}")
+
+            # Initialize cancellations dict per-clock (CRITICAL: must be inside loop)
+            # This prevents scheduled cancellations from prior clocks bleeding into subsequent clocks
+            cancellations_per_month: dict = {}  # month -> list of (customer_id, sub_id) to cancel
 
             # Determine how many customers in this batch (up to 3)
             batch_start = clock_idx * CUSTOMERS_PER_CLOCK

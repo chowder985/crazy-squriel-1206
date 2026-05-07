@@ -201,6 +201,30 @@ The script is organized into focused modules for maintainability and testability
 - **`stripe_seeder/customer_factory.py`** — Customer and subscription creation with rate-limit handling
 - **`stripe_seeder/summary.py`** — Formatted summary output
 - **`stripe_seeder/errors.py`** — Custom exception types
+- **`stripe_seeder/reset.py`** — Pre-run reset of seed-pattern resources
+
+### Stripe test-clock limitations and date-field semantics
+
+Stripe's test clocks simulate billing-period progression but do not backdate every timestamp. Verified against live data (one customer, six months of clock advancement):
+
+| Field | Behavior |
+|---|---|
+| `Subscription.created`, `start_date`, `billing_cycle_anchor`, `current_period_start`, `current_period_end` | **Simulated** — reflects the clock's frozen time |
+| `Invoice.created`, `period_start`, `period_end`, `due_date` | **Simulated** |
+| `Invoice.status_transitions.{finalized_at, paid_at, marked_uncollectible_at, voided_at}` | **Simulated** |
+| `Customer.created` | Real wall-clock time (when the API call ran) |
+| `Charge.created` | **Real wall-clock time** — Stripe collects payments after the clock advances; this cannot be backdated via the API |
+| `PaymentIntent.created` | **Real wall-clock time** (same reason) |
+| `BalanceTransaction.created` | Real wall-clock time |
+
+**Implication for downstream consumers** (Sprint 2 BigQuery ETL, Sprint 3 MRR calc, Sprint 4 dashboard):
+
+- Use `Invoice.period_start` for billing-period anchors. Use `Invoice.status_transitions.paid_at` (or `Invoice.created`) for payment-completion dates. **Do not use `Charge.created` or `PaymentIntent.created` for time-series MRR analysis** — they cluster at the seed run time and will produce a misleading dashboard.
+- When listing invoices via the Stripe API, always include a parent filter: `Invoice.list(subscription=<sid>)` or `Invoice.list(customer=<cid>)`. `Invoice.list` without a parent filter omits test-clock-generated invoices entirely.
+
+References:
+- https://docs.stripe.com/billing/testing/test-clocks/api-advanced-usage
+- https://docs.stripe.com/billing/testing/test-clocks/simulate-subscriptions
 
 ### Troubleshooting
 
@@ -223,6 +247,60 @@ If a test clock fails to reach 'ready' status within 30 seconds:
 #### Live Key Detection
 
 The script **only works with test API keys** (format: `sk_test_*`). It will abort if you provide a live key (`sk_live_*`), protecting your production data.
+
+---
+
+## Stripe test-clock limitations and date-field semantics
+
+When using Stripe Test Clocks to simulate time passage, Stripe advances **some** timestamp fields in the created objects, but leaves others at real wall-clock time. This is documented behavior and important for downstream consumers (BigQuery ETL, MRR calculations, dashboards).
+
+### Simulated fields (safe for time-series analysis)
+
+These fields are advanced by the test clock and reflect the simulated date:
+
+- `Subscription.created`, `start_date`, `billing_cycle_anchor`, `current_period_start`, `current_period_end`
+- `Invoice.created`, `period_start`, `period_end`, `due_date`
+- `Invoice.status_transitions.{finalized_at, paid_at, marked_uncollectible_at, voided_at}`
+
+**Use these for MRR time-series analysis.** They represent the correct simulated dates across your 6-month seeding window.
+
+### Real-time fields (NOT simulated; reflect clock creation time)
+
+These fields are created at the time the script runs and are NOT advanced by the test clock:
+
+- `Customer.created` (creation happened "today" in real time)
+- `Charge.created` (real-time when charge was collected, not invoice period)
+- `PaymentIntent.created` (real-time when payment was initiated)
+- `BalanceTransaction.created` (real-time ledger entry)
+
+**Do NOT use these for historical MRR analysis.** For example, if all your charges show `created: 2026-05-07` (today), that's correct — they all settled today in real time, even though the invoices they paid are dated months in the past.
+
+**Why?** Per [Stripe's Test Clock documentation](https://docs.stripe.com/billing/testing/test-clocks/api-advanced-usage):
+> "Stripe collects payments after the test clock advances." 
+> "The `created` value in the event will always reflect the real time, regardless of whether it's a test clock or not. Look at the `status_transitions.paid_at` field in the Invoice object to get the paid time."
+
+### Implication for downstream consumers (Sprint 2–4)
+
+**For BigQuery ETL (Sprint 2) and MRR calculations (Sprint 3):**
+
+1. **Always read Invoice fields, never Charge fields**, for billing period boundaries and payment dates:
+   - **Period anchor:** `Invoice.period_start` (correct simulated date)
+   - **Payment date:** `Invoice.status_transitions.paid_at` or `Invoice.created` (both simulated correctly)
+   - **Avoid:** `Charge.created` (real-time, not useful for historical analysis)
+
+2. **Always include a parent filter** when listing invoices:
+   - `stripe.Invoice.list(subscription="sub_...")` — invoices for a specific subscription
+   - `stripe.Invoice.list(customer="cus_...")` — invoices for a specific customer
+   - Without a parent filter, **Stripe omits test-clock-generated invoices** from the response.
+
+3. **In your dashboard (Sprint 4):**
+   - Label MRR metrics as "Simulated historical data based on test-clock seeding"
+   - Note that `Charge.created` will show "today" even for invoices dated 6 months ago — this is correct.
+
+### References
+
+- [Stripe Test Clock API Reference](https://docs.stripe.com/billing/testing/test-clocks/api-advanced-usage)
+- [Stripe Simulated Subscription Billing](https://docs.stripe.com/billing/testing/test-clocks/simulate-subscriptions)
 
 ---
 
