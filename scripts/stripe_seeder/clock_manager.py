@@ -95,12 +95,24 @@ class ClockManager:
                 {"id": clock_id, "status": "ready"},
             )()
 
+        # Retrieve current clock state to compute new frozen_time from current state,
+        # not from datetime.now(). The clock's frozen_time is the base; we advance from there.
+        current_clock = stripe.test_helpers.TestClock.retrieve(
+            clock_id, api_key=self.api_key
+        )
+        new_frozen_time = current_clock.frozen_time + (days_forward * 86400)
+
         clock = stripe.test_helpers.TestClock.advance(
             clock_id,
-            frozen_time=int((datetime.now() + timedelta(days=days_forward)).timestamp()),
+            frozen_time=new_frozen_time,
             api_key=self.api_key,
         )
-        logger.info(f"Advanced clock {clock_id} by {days_forward} days")
+        logger.info(
+            f"Advanced clock {clock_id} from {current_clock.frozen_time} "
+            f"({datetime.fromtimestamp(current_clock.frozen_time).isoformat()}) "
+            f"to {new_frozen_time} ({datetime.fromtimestamp(new_frozen_time).isoformat()}) "
+            f"({days_forward} days forward)"
+        )
         return clock
 
     def poll_clock_ready(self, clock_id: str) -> bool:
