@@ -385,3 +385,201 @@ class TestHelpOutput:
         assert "--num-customers" in help_text
         assert "--cleanup" in help_text
         assert "--dry-run" in help_text
+
+
+class TestOrchestration:
+    """Test the full orchestration workflow integration."""
+
+    def test_orchestration_creates_subscriptions(self, mocker):
+        """Integration: Verify subscriptions are created for each customer."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+
+        from seed_stripe_data import seed_stripe_data
+
+        # Mock all Stripe API calls
+        mock_create_customer = mocker.patch("stripe.Customer.create")
+        mock_create_customer.return_value = MagicMock(
+            id="cus_test_123", email="test@example.com"
+        )
+
+        mock_create_subscription = mocker.patch("stripe.Subscription.create")
+        mock_create_subscription.return_value = MagicMock(
+            id="sub_test_123", status="active"
+        )
+
+        mock_attach_pm = mocker.patch("stripe.PaymentMethod.attach")
+        mock_attach_pm.return_value = MagicMock(id="pm_test_123")
+
+        mock_create_clock = mocker.patch("stripe.test_helpers.TestClock.create")
+        mock_create_clock.return_value = MagicMock(
+            id="clock_test_123", status="ready", name="mrr-seed-clock-000"
+        )
+
+        mock_advance_clock = mocker.patch("stripe.test_helpers.TestClock.advance")
+        mock_advance_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mock_retrieve_clock = mocker.patch("stripe.test_helpers.TestClock.retrieve")
+        mock_retrieve_clock.return_value = MagicMock(
+            id="clock_test_123", status="ready"
+        )
+
+        mocker.patch("time.sleep")
+
+        # Mock Customer.list to return no existing customers
+        mock_list = mocker.patch("stripe.Customer.list")
+        mock_list.return_value = []
+
+        result = seed_stripe_data(
+            api_key="sk_test_key",
+            num_customers=6,
+            seed=42,
+            dry_run=False,
+            price_id="price_test",
+        )
+
+        # Verify subscriptions were created
+        assert mock_create_subscription.call_count > 0, "create_subscription should be called"
+        assert result["customer_count"] == 6
+
+    def test_orchestration_attaches_payment_methods(self, mocker):
+        """Integration: Verify payment methods are attached (visa and failing card)."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+
+        from seed_stripe_data import seed_stripe_data
+
+        mock_create_customer = mocker.patch("stripe.Customer.create")
+        mock_create_customer.return_value = MagicMock(id="cus_test_123")
+
+        mock_attach_pm = mocker.patch("stripe.PaymentMethod.attach")
+        mock_attach_pm.return_value = MagicMock(id="pm_test_123")
+
+        mock_create_subscription = mocker.patch("stripe.Subscription.create")
+        mock_create_subscription.return_value = MagicMock(id="sub_test_123")
+
+        mock_create_clock = mocker.patch("stripe.test_helpers.TestClock.create")
+        mock_create_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mock_advance_clock = mocker.patch("stripe.test_helpers.TestClock.advance")
+        mock_advance_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mock_retrieve_clock = mocker.patch("stripe.test_helpers.TestClock.retrieve")
+        mock_retrieve_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mocker.patch("time.sleep")
+        mocker.patch("stripe.Customer.list", return_value=[])
+
+        result = seed_stripe_data(
+            api_key="sk_test_key",
+            num_customers=6,
+            seed=42,
+            dry_run=False,
+            price_id="price_test",
+        )
+
+        # Payment method attachment should be called
+        assert mock_attach_pm.call_count > 0, "attach_payment_method should be called"
+
+    def test_orchestration_cancels_subscriptions(self, mocker):
+        """Integration: Verify subscriptions are canceled for canceled cohort."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+
+        from seed_stripe_data import seed_stripe_data
+
+        mock_create_customer = mocker.patch("stripe.Customer.create")
+        mock_create_customer.return_value = MagicMock(id="cus_test_123")
+
+        mock_create_subscription = mocker.patch("stripe.Subscription.create")
+        mock_create_subscription.return_value = MagicMock(
+            id="sub_test_123", status="active"
+        )
+
+        mock_cancel_subscription = mocker.patch("stripe.Subscription.delete")
+        mock_cancel_subscription.return_value = MagicMock(
+            id="sub_test_123", status="canceled"
+        )
+
+        mock_attach_pm = mocker.patch("stripe.PaymentMethod.attach")
+        mock_attach_pm.return_value = MagicMock(id="pm_test_123")
+
+        mock_create_clock = mocker.patch("stripe.test_helpers.TestClock.create")
+        mock_create_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mock_advance_clock = mocker.patch("stripe.test_helpers.TestClock.advance")
+        mock_advance_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mock_retrieve_clock = mocker.patch("stripe.test_helpers.TestClock.retrieve")
+        mock_retrieve_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mocker.patch("time.sleep")
+        mocker.patch("stripe.Customer.list", return_value=[])
+
+        result = seed_stripe_data(
+            api_key="sk_test_key",
+            num_customers=100,  # Larger sample for better chance of canceled cohort
+            seed=42,
+            dry_run=False,
+            price_id="price_test",
+        )
+
+        # Some subscriptions should be canceled based on status distribution
+        if result["canceled_count"] > 0:
+            assert (
+                mock_cancel_subscription.call_count > 0
+            ), "cancel_subscription should be called for canceled cohort"
+
+    def test_orchestration_clock_naming(self, mocker):
+        """Integration: Verify clocks are created with deterministic names for cleanup."""
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+
+        from seed_stripe_data import seed_stripe_data
+
+        mock_create_customer = mocker.patch("stripe.Customer.create")
+        mock_create_customer.return_value = MagicMock(id="cus_test_123")
+
+        mock_create_subscription = mocker.patch("stripe.Subscription.create")
+        mock_create_subscription.return_value = MagicMock(id="sub_test_123")
+
+        mock_attach_pm = mocker.patch("stripe.PaymentMethod.attach")
+        mock_attach_pm.return_value = MagicMock(id="pm_test_123")
+
+        mock_create_clock = mocker.patch("stripe.test_helpers.TestClock.create")
+        mock_create_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mock_advance_clock = mocker.patch("stripe.test_helpers.TestClock.advance")
+        mock_advance_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mock_retrieve_clock = mocker.patch("stripe.test_helpers.TestClock.retrieve")
+        mock_retrieve_clock.return_value = MagicMock(id="clock_test_123", status="ready")
+
+        mocker.patch("time.sleep")
+        mocker.patch("stripe.Customer.list", return_value=[])
+
+        result = seed_stripe_data(
+            api_key="sk_test_key",
+            num_customers=6,
+            seed=42,
+            dry_run=False,
+            price_id="price_test",
+        )
+
+        # Verify create_clock was called with name parameter
+        assert mock_create_clock.call_count > 0, "create_clock should be called"
+        # Check that name parameter was passed (starts with mrr-seed-clock-)
+        for call in mock_create_clock.call_args_list:
+            assert "name" in call[1], "name parameter should be passed to create_clock"
+            name_value = call[1].get("name", "")
+            assert name_value.startswith(
+                "mrr-seed-clock-"
+            ), f"Clock name should start with mrr-seed-clock-, got {name_value}"

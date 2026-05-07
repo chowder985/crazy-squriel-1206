@@ -32,12 +32,13 @@ class ClockManager:
         self.dry_run = dry_run
         self.clocks: List[stripe.testhelpers.testclock.TestClock] = []
 
-    def create_clock(self, frozen_time: datetime) -> stripe.test_helpers.TestClock:
+    def create_clock(self, frozen_time: datetime, name: Optional[str] = None) -> stripe.test_helpers.TestClock:
         """
         Create a new test clock.
 
         Args:
             frozen_time: Initial frozen time for the clock
+            name: Optional name for the clock (for cleanup pattern matching)
 
         Returns:
             Created TestClock object
@@ -52,14 +53,16 @@ class ClockManager:
                     "id": "clock_dryrun_001",
                     "frozen_time": int(frozen_time.timestamp()),
                     "status": "ready",
+                    "name": name,
                 },
             )()
 
         clock = stripe.test_helpers.TestClock.create(
             frozen_time=int(frozen_time.timestamp()),
+            name=name or f"mrr-seed-clock-{len(self.clocks):03d}",
             api_key=self.api_key,
         )
-        logger.info(f"Created test clock {clock.id} at {frozen_time.isoformat()}")
+        logger.info(f"Created test clock {clock.id} at {frozen_time.isoformat()} with name {clock.name if hasattr(clock, 'name') else 'N/A'}")
         self.clocks.append(clock)
         return clock
 
