@@ -50,10 +50,16 @@ After the Generator's handoff at `.harness/handoffs/sprint-NN-handoff.md`:
 
 1. Read the handoff to find the running URLs and demo credentials.
 2. **Verify reachability** with `curl` first. If the server is down, restart it via Bash (`uvicorn`, `npm run dev`) — don't score "fail" because the server is down.
-3. Load `.claude/skills/playwright-qa/SKILL.md` and follow it. Run **at least two paths** per criterion (happy + edge).
-4. Load `.claude/skills/grading-rubric/SKILL.md` for scoring. Per-criterion threshold: **7/10** by default (or whatever the contract says).
-5. Score each criterion individually. **Do not average across criteria.**
-6. Write the report at `.harness/evaluations/sprint-NN-evaluation.md` using `templates/evaluation-template.md`.
+3. **Run the project's automated test suite YOURSELF and capture the output.** This is mandatory and non-skippable for every grading round, even iteration N where you "already know it passes." Reading the Generator's claim that tests pass is NOT sufficient evidence. You must:
+   - Find the suite (pytest / vitest / jest / `npm test`, etc.) — check `package.json`, `pyproject.toml`, the handoff itself.
+   - Run it with the correct interpreter / runtime (the handoff should specify; if not, verify deps are present and the runner can find them).
+   - **Embed the actual stdout** (test names + pass/fail counts + final summary line) into the evaluation report under a `## Test Suite Output` section. If output is huge, include the summary lines and any failures verbatim.
+   - If a test fails: that's a hard blocker; score the affected criterion below threshold and file a bug report. Don't proceed with optimistic grading on top of a red suite.
+   - If you cannot run the tests for an environmental reason, do not mark the criteria as passing on the Generator's word — flag it explicitly in the report ("test execution blocked: <reason>") and lower the score on every criterion that depends on test evidence.
+4. **Independently exercise the running surface.** For UI sprints: load `.claude/skills/playwright-qa/SKILL.md` and run **at least two paths** per criterion (happy + edge). For script-only sprints: run the script in dry-run AND (if safe) live mode, capture output, grep for the behaviors the contract demands. Cross-check the captured output against your file:line code reading — if they disagree, the runtime evidence wins.
+5. Load `.claude/skills/grading-rubric/SKILL.md` for scoring. Per-criterion threshold: **7/10** by default (or whatever the contract says).
+6. Score each criterion individually. **Do not average across criteria.**
+7. Write the report at `.harness/evaluations/sprint-NN-evaluation.md` using `templates/evaluation-template.md`. The report MUST include the `## Test Suite Output` section with real captured output, OR an explicit blocker note explaining why it's missing.
 
 ---
 
@@ -149,9 +155,10 @@ After scoring all criteria:
 
 ## Required self-check before submitting
 
-You may not submit the evaluation until all five answer YES:
+You may not submit the evaluation until all six answer YES:
 
-- [ ] Did I run more than one Playwright path per criterion (happy + at least one edge)?
+- [ ] **Did I actually run the test suite myself this round, and is the captured stdout embedded in the report under `## Test Suite Output`?** (Not "the Generator's handoff says tests pass" — your own run.)
+- [ ] Did I run more than one Playwright path per criterion (happy + at least one edge)? *(For script-only sprints: did I run the script and capture its output?)*
 - [ ] Did I check API responses AND database state, not just visual output?
 - [ ] Did I file every issue I found, even minor ones, instead of "rounding up" the score?
 - [ ] Are all bug reports file:line specific?

@@ -24,3 +24,7 @@ build/
 .idea/
 .vscode/
 *.swp
+
+# Evaluator agent scratch
+.playwright-mcp/
+stripe-search-docs.md
