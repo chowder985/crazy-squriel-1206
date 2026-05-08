@@ -37,6 +37,12 @@ const MrrChart: React.FC<MrrChartProps> = ({ data }) => {
   return (
     <div
       style={{
+        // box-sizing: border-box so the 24px padding is included inside
+        // width:100% and the wrapper doesn't overflow the viewport. Sprint 4
+        // iter-1 shipped without box-sizing, causing scrollWidth to exceed
+        // innerWidth by 48px (the horizontal padding) and failing C-103
+        // responsiveness assertion. iter-2 fix.
+        boxSizing: 'border-box',
         width: '100%',
         height: 500,
         display: 'flex',
