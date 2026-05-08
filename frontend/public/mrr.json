@@ -1,27 +1,27 @@
 [
   {
     "month": "2025-11-01",
-    "mrr_amount": 1250
+    "mrr_amount": 2700
   },
   {
     "month": "2025-12-01",
-    "mrr_amount": 3400
+    "mrr_amount": 6100
   },
   {
     "month": "2026-01-01",
-    "mrr_amount": 3700
+    "mrr_amount": 6250
   },
   {
     "month": "2026-02-01",
-    "mrr_amount": 5100
+    "mrr_amount": 8050
   },
   {
     "month": "2026-03-01",
-    "mrr_amount": 6700
+    "mrr_amount": 8650
   },
   {
     "month": "2026-04-01",
-    "mrr_amount": 6700
+    "mrr_amount": 6950
   },
   {
     "month": "2026-05-01",

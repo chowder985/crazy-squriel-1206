@@ -44,20 +44,31 @@
  * A subscription contributes to a given month M if AND ONLY IF all of the
  * following conditions are met:
  *
- * (1) Status check: status IN ('active', 'trialing', 'past_due')
- *     - The subscription is in a billable state (not incomplete, incomplete_expired, canceled, etc.)
+ * (1) Ever-activated check: status NOT IN ('incomplete', 'incomplete_expired')
+ *     - Excludes subscriptions whose first invoice never finalized (those
+ *       contribute $0 forever). Subs with status 'canceled' / 'past_due' /
+ *       'unpaid' / 'paused' / 'active' / 'trialing' DO appear because the
+ *       `canceled_at` boundary below bounds their contribution per-month.
+ *
+ *     History: Sprint 3 iter-1 used `status IN ('active','trialing','past_due')`
+ *     here, which caused MRR to be undercounted by every canceled sub even in
+ *     the months they were actively billing. Iter-2 corrects this — see the
+ *     comment block on the active_subscriptions CTE for the bug details.
  *
  * (2) Start boundary: start_date <= last_day_of_month(M)
  *     - The subscription must have started on or before the last day of month M
  *
- * (3) Cancel boundary: canceled_at IS NULL OR canceled_at >= first_day_of_month(M)
- *     - The subscription must either not be canceled, OR if canceled, the cancellation
- *       occurred on or after the first day of month M (i.e., it was active for some part of the month)
+ * (3) Cancel boundary: canceled_at IS NULL OR canceled_at > first_day_of_month(M)
+ *     - The subscription must either not be canceled, OR if canceled, the
+ *       cancellation occurred AFTER the first day of month M (i.e., the sub
+ *       was still active at the start of M and remained active for at least
+ *       one day during M).
  *
  * Rationale: A subscription is "active for ANY day in the month" if it was alive
  * from the first day through the day it was canceled (or until month end if not canceled).
  * If canceled on day 5 of the month, it contributes (active days 1-4). If canceled
- * on day 1, it does NOT contribute (no active days in the month).
+ * on the first day of the month, it does NOT contribute (no active days in M;
+ * canceled at the boundary).
  *
  * =============================================================================
  * TIER-CHANGE HANDLING (Cancel-and-Recreate Pattern)
@@ -160,7 +171,25 @@ WITH month_series AS (
 ),
 
 active_subscriptions AS (
-  -- Select subscriptions in a billable state, with their core MRR fields
+  -- Select subscriptions that ever activated. The end-of-active-period is
+  -- determined per-month by `canceled_at` in the JOIN below, NOT by the
+  -- current `status` column.
+  --
+  -- Sprint 3 iter-2 fix: the original filter
+  --   WHERE status IN ('active','trialing','past_due')
+  -- excluded subs whose CURRENT status is 'canceled' even from months when
+  -- they were actively billing. With Sprint 1's seed (28 canceled subs),
+  -- MRR was undercounted by $1,450-$2,950 per month for Nov-Mar; the
+  -- "Mar/Apr/May plateau at $6,700" was an artifact of this bug. Corrected
+  -- MRR shows the expected churn-driven decline post-March.
+  --
+  -- The correct filter excludes only never-activated statuses:
+  --   - 'incomplete'         — first invoice never finalized
+  --   - 'incomplete_expired' — Stripe gave up on the first invoice
+  -- Subs that activated and later went canceled / past_due / unpaid /
+  -- paused / trialing still appear in the months they were active because
+  -- the `canceled_at > first_day(M)` rule in the JOIN bounds their
+  -- contribution correctly.
   SELECT
     DATE(start_date) AS sub_start_date,
     CASE
@@ -172,7 +201,7 @@ active_subscriptions AS (
     LOWER(`interval`) AS interval_type,
     interval_count
   FROM `${dataset}.subscriptions`
-  WHERE status IN ('active', 'trialing', 'past_due')
+  WHERE status NOT IN ('incomplete', 'incomplete_expired')
 ),
 
 monthly_contributions AS (
