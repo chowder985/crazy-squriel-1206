@@ -1529,5 +1529,254 @@ class TestStripeFetcher:
             assert result[0].id == "in_test"
 
 
+# ============================================================================
+# ERROR PATH TESTS (C-68 Coverage: BigQuery, Stripe, Watermark exceptions)
+# ============================================================================
+
+
+class TestBigQueryClientErrorPaths:
+    """Tests for BigQuery client error handling (C-68 coverage lift)."""
+
+    def test_merge_result_exception(self):
+        """Test merge() when query_job.result() raises exception."""
+        from bq_sync.bq_client import BigQueryClient
+        from bq_sync.errors import BigQueryError
+        from google.cloud.exceptions import GoogleCloudError
+
+        with mock.patch("google.cloud.bigquery.Client"):
+            with mock.patch("google.cloud.bigquery.QueryJobConfig"):
+                with mock.patch("google.cloud.bigquery.ArrayQueryParameter"):
+                    with mock.patch("google.cloud.bigquery.SchemaField"):
+                        bq = BigQueryClient()
+                        mock_client = mock.Mock()
+                        mock_client.project = "test-project"
+                        mock_job = mock.Mock()
+                        mock_job.result.side_effect = GoogleCloudError("Result failed")
+                        mock_client.query.return_value = mock_job
+                        bq.client = mock_client
+
+                        rows = [{"id": "cus_1", "email": "test@example.com"}]
+
+                        with pytest.raises(BigQueryError, match="MERGE operation failed"):
+                            bq.merge("test_dataset", "customers", rows, "id")
+
+    def test_truncate_table_with_exception(self):
+        """Test truncate_table() raises BigQueryError on query failure."""
+        from bq_sync.bq_client import BigQueryClient
+        from bq_sync.errors import BigQueryError
+        from google.cloud.exceptions import GoogleCloudError
+
+        with mock.patch("google.cloud.bigquery.Client"):
+            bq = BigQueryClient()
+            mock_client = mock.Mock()
+            mock_client.project = "test-project"
+            mock_client.query.side_effect = GoogleCloudError("Truncate failed")
+            bq.client = mock_client
+
+            with pytest.raises(BigQueryError, match="Truncation failed"):
+                bq.truncate_table("test_dataset", "customers")
+
+    def test_truncate_table_result_exception(self):
+        """Test truncate_table() when query_job.result() fails."""
+        from bq_sync.bq_client import BigQueryClient
+        from bq_sync.errors import BigQueryError
+        from google.cloud.exceptions import GoogleCloudError
+
+        with mock.patch("google.cloud.bigquery.Client"):
+            bq = BigQueryClient()
+            mock_client = mock.Mock()
+            mock_client.project = "test-project"
+            mock_job = mock.Mock()
+            mock_job.result.side_effect = GoogleCloudError("Result timeout")
+            mock_client.query.return_value = mock_job
+            bq.client = mock_client
+
+            with pytest.raises(BigQueryError, match="Truncation failed"):
+                bq.truncate_table("test_dataset", "customers")
+
+    def test_query_with_exception(self):
+        """Test query() raises BigQueryError on execution failure."""
+        from bq_sync.bq_client import BigQueryClient
+        from bq_sync.errors import BigQueryError
+        from google.cloud.exceptions import GoogleCloudError
+
+        with mock.patch("google.cloud.bigquery.Client"):
+            bq = BigQueryClient()
+            mock_client = mock.Mock()
+            mock_client.project = "test-project"
+            mock_client.query.side_effect = GoogleCloudError("Query syntax error")
+            bq.client = mock_client
+
+            with pytest.raises(BigQueryError, match="Query execution failed"):
+                bq.query("SELECT * FROM customers")
+
+    def test_query_result_exception(self):
+        """Test query() when query_job.result() fails."""
+        from bq_sync.bq_client import BigQueryClient
+        from bq_sync.errors import BigQueryError
+        from google.cloud.exceptions import GoogleCloudError
+
+        with mock.patch("google.cloud.bigquery.Client"):
+            bq = BigQueryClient()
+            mock_client = mock.Mock()
+            mock_client.project = "test-project"
+            mock_job = mock.Mock()
+            mock_job.result.side_effect = GoogleCloudError("Result failed")
+            mock_client.query.return_value = mock_job
+            bq.client = mock_client
+
+            with pytest.raises(BigQueryError, match="Query execution failed"):
+                bq.query("SELECT * FROM customers")
+
+
+class TestStripeFetcherErrorPaths:
+    """Tests for Stripe fetcher error handling (C-68 coverage lift)."""
+
+    def test_fetch_customers_with_stripe_api_error(self):
+        """Test fetch_customers() raises StripeAPIError on API error."""
+        from bq_sync.stripe_fetcher import fetch_customers
+        from bq_sync.errors import StripeAPIError
+
+        with mock.patch("stripe.Customer.list") as mock_list:
+            mock_list.side_effect = stripe.error.APIError("API error")
+
+            with pytest.raises(StripeAPIError, match="Fetch customers failed"):
+                list(fetch_customers("sk_test_123", dry_run=False))
+
+    def test_fetch_subscriptions_with_stripe_api_error(self):
+        """Test fetch_subscriptions() raises StripeAPIError on non-429 error."""
+        from bq_sync.stripe_fetcher import fetch_subscriptions
+        from bq_sync.errors import StripeAPIError
+
+        with mock.patch("stripe.Subscription.list") as mock_list:
+            # Simulate APIConnectionError (5xx-like, non-429)
+            mock_list.side_effect = stripe.error.APIConnectionError("Connection failed")
+
+            with pytest.raises(StripeAPIError, match="Fetch subscriptions failed"):
+                list(fetch_subscriptions("sk_test_123", dry_run=False))
+
+    def test_fetch_invoices_with_stripe_api_error(self):
+        """Test fetch_invoices() raises StripeAPIError on API error."""
+        from bq_sync.stripe_fetcher import fetch_invoices
+        from bq_sync.errors import StripeAPIError
+
+        with mock.patch("stripe.Invoice.list") as mock_list:
+            mock_list.side_effect = stripe.error.APIError("API error")
+
+            with pytest.raises(StripeAPIError, match="Fetch invoices failed"):
+                list(fetch_invoices("sk_test_123", dry_run=False))
+
+    def test_retry_on_rate_limit_exhausts_and_returns_none(self):
+        """Test _retry_on_rate_limit() returns None after 5 429 retries."""
+        from bq_sync.stripe_fetcher import _retry_on_rate_limit
+
+        call_count = [0]
+
+        def failing_fn():
+            call_count[0] += 1
+            raise stripe.error.RateLimitError(429, "Rate limited")
+
+        result = _retry_on_rate_limit(failing_fn)
+
+        # Should have tried 6 times (MAX_RETRIES=5 + initial=1)
+        assert call_count[0] == 6
+        assert result is None
+
+    def test_retry_on_rate_limit_succeeds_on_retry(self):
+        """Test _retry_on_rate_limit() succeeds on eventual success."""
+        from bq_sync.stripe_fetcher import _retry_on_rate_limit
+
+        call_count = [0]
+
+        def eventually_succeeds():
+            call_count[0] += 1
+            if call_count[0] < 3:
+                raise stripe.error.RateLimitError(429, "Rate limited")
+            return "success"
+
+        result = _retry_on_rate_limit(eventually_succeeds)
+
+        assert result == "success"
+        assert call_count[0] == 3
+
+    def test_retry_on_rate_limit_aborts_on_api_error(self):
+        """Test _retry_on_rate_limit() raises StripeAPIError on non-429."""
+        from bq_sync.stripe_fetcher import _retry_on_rate_limit
+        from bq_sync.errors import StripeAPIError
+
+        def api_error_fn():
+            raise stripe.error.APIError("Server error")
+
+        with pytest.raises(StripeAPIError):
+            _retry_on_rate_limit(api_error_fn)
+
+    def test_retry_on_rate_limit_aborts_on_connection_error(self):
+        """Test _retry_on_rate_limit() raises StripeAPIError on connection error."""
+        from bq_sync.stripe_fetcher import _retry_on_rate_limit
+        from bq_sync.errors import StripeAPIError
+
+        def connection_error_fn():
+            raise stripe.error.APIConnectionError("Connection failed")
+
+        with pytest.raises(StripeAPIError):
+            _retry_on_rate_limit(connection_error_fn)
+
+
+class TestWatermarkErrorPaths:
+    """Tests for watermark error handling (C-68 coverage lift)."""
+
+    def test_get_watermark_with_query_exception(self):
+        """Test get_watermark() raises BigQueryError on query failure."""
+        from bq_sync.watermark import get_watermark
+        from bq_sync.errors import BigQueryError
+
+        mock_client = mock.Mock()
+        mock_client.query.side_effect = Exception("Query failed")
+
+        with pytest.raises(BigQueryError, match="Watermark query failed"):
+            get_watermark(mock_client, "test_dataset", "customers")
+
+    def test_set_watermark_with_exception(self):
+        """Test set_watermark() raises BigQueryError on merge failure."""
+        from bq_sync.watermark import set_watermark
+        from bq_sync.errors import BigQueryError
+        from datetime import datetime
+
+        mock_client = mock.Mock()
+        mock_client.client.query.side_effect = Exception("Query failed")
+
+        timestamp = datetime(2024, 1, 1, 12, 0, 0)
+
+        with pytest.raises(BigQueryError, match="Watermark update failed"):
+            set_watermark(mock_client, "test_dataset", "customers", timestamp)
+
+    def test_reset_watermarks_with_exception(self):
+        """Test reset_watermarks() raises BigQueryError on truncate failure."""
+        from bq_sync.watermark import reset_watermarks
+        from bq_sync.errors import BigQueryError
+
+        mock_client = mock.Mock()
+        mock_client.truncate_table.side_effect = Exception("Truncate failed")
+
+        with pytest.raises(BigQueryError, match="Watermark reset failed"):
+            reset_watermarks(mock_client, "test_dataset")
+
+    def test_set_watermark_with_result_exception(self):
+        """Test set_watermark() when query_job.result() fails."""
+        from bq_sync.watermark import set_watermark
+        from bq_sync.errors import BigQueryError
+        from datetime import datetime
+
+        mock_client = mock.Mock()
+        mock_job = mock.Mock()
+        mock_job.result.side_effect = Exception("Result failed")
+        mock_client.client.query.return_value = mock_job
+
+        timestamp = datetime(2024, 1, 1, 12, 0, 0)
+
+        with pytest.raises(BigQueryError, match="Watermark update failed"):
+            set_watermark(mock_client, "test_dataset", "customers", timestamp)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
