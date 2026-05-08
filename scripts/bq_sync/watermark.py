@@ -4,6 +4,8 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+from google.cloud import bigquery
+
 from .bq_client import BigQueryClient
 from .errors import BigQueryError
 
@@ -59,7 +61,6 @@ def set_watermark(client: BigQueryClient, dataset_id: str, sync_key: str, timest
         BigQueryError: On query failure
     """
     try:
-        timestamp_str = timestamp.isoformat() + "Z"
         sql = f"""
         MERGE INTO `{client.client.project}.{dataset_id}._sync_watermarks` T
         USING (SELECT @sync_key as sync_key, @timestamp as last_synced_at) S
@@ -68,15 +69,21 @@ def set_watermark(client: BigQueryClient, dataset_id: str, sync_key: str, timest
         WHEN NOT MATCHED THEN INSERT (sync_key, last_synced_at) VALUES (S.sync_key, S.last_synced_at)
         """
 
-        job_config = {
-            "query_parameters": [
-                {"parameterType": {"type": "STRING"}, "parameterValue": {"value": sync_key}},
-                {"parameterType": {"type": "TIMESTAMP"}, "parameterValue": {"value": timestamp_str}},
+        # iter-4 fix: BigQuery's Client.query() requires a QueryJobConfig
+        # instance, not a raw dict. Sprint 2 iter-1 shipped the dict form
+        # because the unit tests mocked Client.query(...) and the wrong type
+        # was never validated. The named placeholders @sync_key and @timestamp
+        # bind to ScalarQueryParameter values; pass the datetime directly so
+        # the SDK serializes it as a TIMESTAMP literal.
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("sync_key", "STRING", sync_key),
+                bigquery.ScalarQueryParameter("timestamp", "TIMESTAMP", timestamp),
             ]
-        }
+        )
 
         client.client.query(sql, job_config=job_config).result()
-        logger.info(f"Updated watermark for {sync_key}: {timestamp_str}")
+        logger.info(f"Updated watermark for {sync_key}: {timestamp.isoformat()}")
     except Exception as e:
         logger.error(f"Failed to set watermark for {sync_key}: {e}")
         raise BigQueryError(f"Watermark update failed: {e}") from e

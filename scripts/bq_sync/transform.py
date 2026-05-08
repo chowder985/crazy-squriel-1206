@@ -10,6 +10,24 @@ from .errors import TransformError
 logger = logging.getLogger(__name__)
 
 
+def _lookup(obj: Any, key: str, default: Any = None) -> Any:
+    """Lookup ``key`` on ``obj`` using bracket access for dict-like Stripe
+    objects and attribute access for everything else.
+
+    Stripe SDK objects extend ``dict``, which makes ``obj.items``,
+    ``obj.keys``, and other dict-method names shadow the underlying data.
+    Bracket access avoids the shadowing for real Stripe objects. Unit-test
+    fixtures use ``Mock``/``MagicMock`` (which don't extend dict), so the
+    fallback to ``getattr`` keeps existing tests working without changing
+    their mock construction.
+    """
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
+
 def _parse_timestamp(timestamp_val: Optional[Any]) -> Optional[str]:
     """
     Parse Stripe timestamp to UTC TIMESTAMP string.
@@ -113,14 +131,24 @@ def transform_subscriptions(subscriptions: list) -> Dict[str, list]:
             interval = None
             interval_count = None
 
-            if subscription.items and len(subscription.items.data) > 0:
-                price_obj = subscription.items.data[0].price
+            # Iter-4: ``subscription.items`` returns the inherited dict.items
+            # method (Stripe Subscription extends dict). Use ``_lookup`` which
+            # prefers bracket access on dict-like Stripe objects and falls
+            # back to attribute access for unit-test Mock fixtures (which
+            # don't extend dict).
+            sub_items = _lookup(subscription, "items")
+            sub_items_data = _lookup(sub_items, "data") if sub_items is not None else None
+            if sub_items_data and len(sub_items_data) > 0:
+                first_item = sub_items_data[0]
+                price_obj = _lookup(first_item, "price")
                 if price_obj:
-                    price = price_obj.id
-                    unit_amount_cents = price_obj.unit_amount
-                    currency = price_obj.currency
-                    interval = price_obj.recurring.interval if price_obj.recurring else None
-                    interval_count = price_obj.recurring.interval_count if price_obj.recurring else None
+                    price = _lookup(price_obj, "id")
+                    unit_amount_cents = _lookup(price_obj, "unit_amount")
+                    currency = _lookup(price_obj, "currency")
+                    recurring = _lookup(price_obj, "recurring")
+                    if recurring:
+                        interval = _lookup(recurring, "interval")
+                        interval_count = _lookup(recurring, "interval_count")
 
             billing_cycle_anchor = _parse_timestamp(subscription.billing_cycle_anchor)
             current_period_start = _parse_timestamp(subscription.current_period_start)

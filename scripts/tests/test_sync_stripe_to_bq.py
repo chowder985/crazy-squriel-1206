@@ -686,13 +686,20 @@ class TestIntegration:
             pytest.skip("STRIPE_API_KEY is not a test mode key")
 
         try:
-            # Step 1: Seed 3 customers with tier changes
+            # Step 1: Seed 3 customers WITHOUT --cleanup-after and WITH --no-reset.
+            # Per user directive (iter-4): integration tests must not delete
+            # existing Stripe data. --no-reset prevents reset_seed_data() from
+            # deleting prior seed-pattern customers/clocks at the start of the
+            # seed run; dropping --cleanup-after means clocks + customers
+            # persist for sync to fetch (and remain after the test finishes
+            # for inspection or further runs). Test cleanup at the bottom of
+            # this fixture is BigQuery-dataset only — it never touches Stripe.
             seed_cmd = [
                 "python",
                 "scripts/seed_stripe_data.py",
                 "--num-customers",
                 "3",
-                "--cleanup-after",
+                "--no-reset",
                 "--seed",
                 "42",
             ]
@@ -704,8 +711,9 @@ class TestIntegration:
                 timeout=600,
             )
             if seed_result.returncode != 0:
-                pytest.skip(
-                    f"Seed Stripe data failed: {seed_result.stderr}"
+                pytest.fail(
+                    f"Seed Stripe data failed (rc={seed_result.returncode}): "
+                    f"stderr={seed_result.stderr[-2000:]}"
                 )
 
             # Step 2: Run sync to BigQuery with full-refresh
@@ -724,11 +732,12 @@ class TestIntegration:
                 capture_output=True,
                 text=True,
                 cwd="/Users/ilhoonlee/Projects/optisigns-assessment/scripts",
-                timeout=120,
+                timeout=300,
             )
             if sync_result.returncode != 0:
-                pytest.skip(
-                    f"Sync to BigQuery failed: {sync_result.stderr}"
+                pytest.fail(
+                    f"Sync to BigQuery failed (rc={sync_result.returncode}): "
+                    f"stderr={sync_result.stderr[-2000:]}"
                 )
 
             # Step 3: Query distinct customer count
@@ -742,20 +751,30 @@ class TestIntegration:
                 customer_count >= 3
             ), f"Expected at least 3 customers, got {customer_count}"
 
-            # Step 4: Query tier-change evidence (idempotency_key contains v1)
+            # Step 4: Query tier-change evidence — successive subs for the
+            # same customer (Sprint 1 iter-14 cancel-and-recreate produces v0
+            # + v1 stripe_subscription_ids per tier-change customer per C-75).
             query_tier_changes = f"""
-                SELECT COUNT(*) as tier_change_count
-                FROM `{bq_client.project}.{integration_dataset_id}.subscriptions`
-                WHERE metadata LIKE '%v1%'
+                SELECT COUNT(*) as tier_change_customers FROM (
+                    SELECT stripe_customer_id, COUNT(*) AS sub_count
+                    FROM `{bq_client.project}.{integration_dataset_id}.subscriptions`
+                    GROUP BY stripe_customer_id
+                    HAVING sub_count >= 2
+                )
             """
             tier_changes_result = bq_client.query(query_tier_changes).result()
-            tier_change_count = next(tier_changes_result)[0]
+            tier_change_customers = next(tier_changes_result)[0]
             assert (
-                tier_change_count >= 1
-            ), f"Expected at least 1 tier-change row, got {tier_change_count}"
+                tier_change_customers >= 1
+            ), (
+                f"Expected at least 1 customer with >=2 subscriptions "
+                f"(tier change), got {tier_change_customers}"
+            )
 
         finally:
-            # Cleanup: delete the dataset
+            # BQ-only cleanup: delete the per-run dataset. Stripe data is left
+            # in place per user iter-4 directive ("Do not delete existing
+            # Stripe data during tests or evaluation").
             try:
                 bq_client.delete_dataset(integration_dataset_id, delete_contents=True, not_found_ok=True)
             except Exception as e:
@@ -773,13 +792,18 @@ class TestIntegration:
             pytest.skip("STRIPE_API_KEY is not a test mode key")
 
         try:
-            # Step 1: Seed 10 customers with deterministic seed to ensure tier changes
+            # Step 1: Seed 10 customers (deterministic seed=42 produces ≥1
+            # tier change). Per iter-4 user directive, we do NOT --cleanup-after
+            # (which would delete clocks + customers before sync can fetch
+            # them) and we DO pass --no-reset (which prevents the seed step
+            # from deleting prior seed-pattern data on entry). The data
+            # persists in Stripe after the test for inspection.
             seed_cmd = [
                 "python",
                 "scripts/seed_stripe_data.py",
                 "--num-customers",
                 "10",
-                "--cleanup-after",
+                "--no-reset",
                 "--seed",
                 "42",
             ]
@@ -788,11 +812,12 @@ class TestIntegration:
                 capture_output=True,
                 text=True,
                 cwd="/Users/ilhoonlee/Projects/optisigns-assessment",
-                timeout=600,
+                timeout=900,
             )
             if seed_result.returncode != 0:
-                pytest.skip(
-                    f"Seed Stripe data failed: {seed_result.stderr}"
+                pytest.fail(
+                    f"Seed Stripe data failed (rc={seed_result.returncode}): "
+                    f"stderr={seed_result.stderr[-2000:]}"
                 )
 
             # Step 2: Run sync to BigQuery with full-refresh
@@ -811,11 +836,12 @@ class TestIntegration:
                 capture_output=True,
                 text=True,
                 cwd="/Users/ilhoonlee/Projects/optisigns-assessment/scripts",
-                timeout=120,
+                timeout=300,
             )
             if sync_result.returncode != 0:
-                pytest.skip(
-                    f"Sync to BigQuery failed: {sync_result.stderr}"
+                pytest.fail(
+                    f"Sync to BigQuery failed (rc={sync_result.returncode}): "
+                    f"stderr={sync_result.stderr[-2000:]}"
                 )
 
             # Step 3: Find a customer with tier change (idempotency_key with v0 and v1)
@@ -829,8 +855,13 @@ class TestIntegration:
             tier_change_result = bq_client.query(query_tier_change_customer).result()
             rows = list(tier_change_result)
 
-            if not rows:
-                pytest.skip("No tier-change customer found in seeded data")
+            assert rows, (
+                "Expected at least one tier-change customer (seed=42 with "
+                "n=10 should produce ~1 per Sprint 1 iter-14 invariants); got "
+                "no rows from the COUNT(*) >= 2 query — this means C-75 "
+                "tier-change preservation is NOT working: either the seed "
+                "didn't produce tier changes, or sync deduplicated them."
+            )
 
             customer_id, sub_count = rows[0]
             assert (
@@ -852,11 +883,13 @@ class TestIntegration:
                 capture_output=True,
                 text=True,
                 cwd="/Users/ilhoonlee/Projects/optisigns-assessment/scripts",
-                timeout=120,
+                timeout=300,
             )
             if sync_incremental_result.returncode != 0:
-                pytest.skip(
-                    f"Incremental sync to BigQuery failed: {sync_incremental_result.stderr}"
+                pytest.fail(
+                    f"Incremental sync to BigQuery failed "
+                    f"(rc={sync_incremental_result.returncode}): "
+                    f"stderr={sync_incremental_result.stderr[-2000:]}"
                 )
 
             # Step 5: Query again and verify count is still the same (no deduplication)
@@ -1242,20 +1275,28 @@ class TestWatermark:
         assert mock_client.query.called
 
     def test_stripe_fetcher_handles_no_items_gracefully(self):
-        """C-46: Subscriptions with no items are skipped silently."""
-        # Simulate a subscription with no items
+        """C-46: Subscriptions with no items are skipped silently.
+
+        Note: this test was filed under TestWatermark by mistake during
+        iter-2 coverage work; it actually exercises ``fetch_subscriptions``.
+        Iter-4 added test-clock enumeration to the fetcher, so this test
+        now also patches ``stripe.test_helpers.TestClock.list`` to keep it
+        focused on the no-items branch.
+        """
         mock_sub = mock.Mock()
         mock_sub.id = "sub_no_items"
         mock_sub.livemode = False
         mock_sub.items = mock.Mock()
         mock_sub.items.data = []  # Empty items
 
-        with mock.patch("stripe.Subscription.list") as mock_list:
+        with mock.patch("stripe.Subscription.list") as mock_list, mock.patch(
+            "stripe.test_helpers.TestClock.list"
+        ) as mock_clock_list:
             mock_list.return_value.auto_paging_iter = mock.Mock(
                 return_value=[mock_sub]
             )
+            mock_clock_list.return_value.auto_paging_iter = mock.Mock(return_value=[])
             result = list(fetch_subscriptions("sk_test_123", dry_run=False))
-            # Should skip empty items subscriptions
             assert len(result) == 0
 
 
@@ -1266,6 +1307,25 @@ class TestWatermark:
 
 class TestStripeFetcher:
     """Tests for Stripe data fetching."""
+
+    @pytest.fixture(autouse=True)
+    def _mock_test_clocks_and_default_customer_empty(self):
+        """Iter-4: the fetcher now (a) enumerates test clocks before/during
+        each entity listing and (b) drives per-customer invoice fetches off
+        a customer enumeration. Default to empty test clocks AND empty
+        default-Customer.list so individual tests can focus on the entity
+        they're actually exercising. Tests that need either branch populated
+        can re-patch ``stripe.test_helpers.TestClock.list`` or
+        ``stripe.Customer.list`` themselves and the inner ``with`` patch
+        will take precedence inside the test body."""
+        with mock.patch(
+            "stripe.test_helpers.TestClock.list"
+        ) as mock_clock_list, mock.patch(
+            "stripe.Customer.list"
+        ) as mock_customer_default:
+            mock_clock_list.return_value.auto_paging_iter = mock.Mock(return_value=[])
+            mock_customer_default.return_value.auto_paging_iter = mock.Mock(return_value=[])
+            yield mock_clock_list
 
     def test_fetch_customers_dry_run(self):
         """C-45: Skip fetch in dry-run mode."""
@@ -1295,14 +1355,29 @@ class TestStripeFetcher:
         assert result == []
 
     def test_fetch_subscriptions_price_expansion(self):
-        """C-46: Expand items.data.price in fetch."""
+        """C-46: Expand data.items.data.price in fetch.
+
+        The list endpoint requires the outer ``data.`` prefix because the
+        response wraps the page in ``data: [...]``. The bare ``items.data.price``
+        form (only valid for retrieve, not list) was shipped in iter-1 and
+        rejected with HTTP 400 by Stripe in iter-4 live exercise; the test
+        previously asserted the broken value, so it failed once the production
+        code was corrected. This is the contract-correct assertion.
+        """
         with mock.patch("stripe.Subscription.list") as mock_list:
             mock_list.return_value.auto_paging_iter = mock.Mock(return_value=[])
             list(fetch_subscriptions("sk_test_123", dry_run=False))
-            # Verify expand parameter is passed
             call_kwargs = mock_list.call_args[1]
             assert "expand" in call_kwargs
-            assert "items.data.price" in call_kwargs["expand"]
+            assert "data.items.data.price" in call_kwargs["expand"], (
+                f"expand must use 'data.items.data.price' for the list endpoint; "
+                f"got {call_kwargs['expand']}"
+            )
+            # Reject the bare-items form to prevent regression to the iter-1 bug.
+            assert "items.data.price" not in call_kwargs["expand"], (
+                f"expand uses 'items.data.price' (Stripe will 400 on list "
+                f"endpoint); got {call_kwargs['expand']}"
+            )
 
     def test_fetch_invoices_dry_run(self):
         """C-47: Skip fetch in dry-run mode."""
@@ -1631,6 +1706,19 @@ class TestBigQueryClientErrorPaths:
 
 class TestStripeFetcherErrorPaths:
     """Tests for Stripe fetcher error handling (C-68 coverage lift)."""
+
+    @pytest.fixture(autouse=True)
+    def _mock_test_clocks_and_default_customer_empty(self):
+        """Iter-4: same auto-mock as TestStripeFetcher to keep error-path
+        tests focused on the non-test-clock branch."""
+        with mock.patch(
+            "stripe.test_helpers.TestClock.list"
+        ) as mock_clock_list, mock.patch(
+            "stripe.Customer.list"
+        ) as mock_customer_default:
+            mock_clock_list.return_value.auto_paging_iter = mock.Mock(return_value=[])
+            mock_customer_default.return_value.auto_paging_iter = mock.Mock(return_value=[])
+            yield mock_clock_list
 
     def test_fetch_customers_with_stripe_api_error(self):
         """Test fetch_customers() raises StripeAPIError on API error."""
