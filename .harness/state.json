@@ -1,0 +1,17 @@
+{
+  "mode": "per-sprint",
+  "phase": "sprint-complete-paused",
+  "current_sprint": 5,
+  "completed_sprints": [1, 2, 3, 4],
+  "current_iteration": 0,
+  "iteration_cap_per_sprint": 15,
+  "iteration_cap_end_to_end_rounds": 5,
+  "threshold_per_criterion": 7,
+  "started_at": "2026-05-06T00:00:00Z",
+  "figma_source": null,
+  "rubric": "full-stack",
+  "spec_path": ".harness/plans/spec.md",
+  "last_verdict": "Pass",
+  "last_evaluation": ".harness/evaluations/sprint-03-iter-03-evaluation.md",
+  "notes": "Sprint 3 PASS at iter-3 (commit 61fd5d3) — this time with VERIFIED Convention A semantics. Iteration arc: iter-1 (status-filter undercount, hidden by dead C-86 test) -> iter-2 (status filter fixed, but introduced tier-change double-count via 'canceled_at >= first_day(M)' rule, hidden by dead C-87 test) -> iter-3 (Convention A end-of-month snapshot 'canceled_at > LAST_DAY(M)', plus rewritten C-86 + C-87 tests with real numerical assertions). Final MRR series: 2025-11=$2700, 2025-12=$5450, 2026-01=$5900, 2026-02=$6700, 2026-03=$6950, 2026-04=$6700, 2026-05=$6700 — peak in March, churn-driven decline through April, plateau in May. All 16 criteria scored 10/10 in iter-3 evaluation. 11/11 SQL tests pass live (7 Layer-A static + 4 Layer-B live with TEST_MRR_LIVE=1). 20/20 frontend tests pass. frontend/public/mrr.json regenerated; Sprint 4 chart auto-displays the corrected shape. No Stripe data touched. Critical lesson: the iter-1 'deferred-live' Pass that hid both bugs (status undercount, dead tests) was caught when the user applied the live-verify rule rigorously and asked specific numerical questions. Sprint 4 stays in completed_sprints since the chart code was structurally correct — only the upstream data was wrong. Sprint 5 (Polish + Observability + optional AI anomaly detection per spec §5) awaits user kickoff via /harness-sprint OR can be skipped if user considers product complete."
+}

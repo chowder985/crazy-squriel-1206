@@ -1,5 +1,5 @@
 # Harness runtime artifacts (not committed; per-run state)
-.harness/
+# .harness/
 
 # Common build/dep noise
 node_modules/
@@ -27,4 +27,4 @@ build/
 
 # Evaluator agent scratch
 .playwright-mcp/
-stripe-search-docs.md
+# stripe-search-docs.md

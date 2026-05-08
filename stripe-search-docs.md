@@ -1,0 +1,1970 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e8]:
+    - generic [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12]:
+          - link [ref=e13] [cursor=pointer]:
+            - /url: /api
+            - generic "Stripe" [ref=e14]:
+              - img [ref=e15]
+            - img [ref=e17]
+          - button [ref=e19] [cursor=pointer]:
+            - img [ref=e23]
+        - generic [ref=e25]:
+          - button "Find anything" [ref=e26] [cursor=pointer]:
+            - generic [ref=e27]:
+              - img [ref=e29]
+              - generic [ref=e32]: Find anything
+          - button "Ask AI" [ref=e33] [cursor=pointer]:
+            - img [ref=e35]
+            - generic [ref=e38]: Ask AI
+      - generic [ref=e39]:
+        - list [ref=e41]:
+          - link "Introduction" [ref=e44] [cursor=pointer]:
+            - /url: https://docs.stripe.com/api
+            - generic [ref=e45]: Introduction
+          - link "Authentication" [ref=e48] [cursor=pointer]:
+            - /url: https://docs.stripe.com/api/authentication
+            - generic [ref=e49]: Authentication
+          - link "Errors" [ref=e52] [cursor=pointer]:
+            - /url: https://docs.stripe.com/api/errors
+            - generic [ref=e53]: Errors
+          - link "Expanding Responses" [ref=e56] [cursor=pointer]:
+            - /url: https://docs.stripe.com/api/expanding_objects
+            - generic [ref=e57]: Expanding Responses
+          - link "Idempotent requests" [ref=e60] [cursor=pointer]:
+            - /url: https://docs.stripe.com/api/idempotent_requests
+            - generic [ref=e61]: Idempotent requests
+          - link "Include-dependent response values (API v2)" [ref=e64] [cursor=pointer]:
+            - /url: https://docs.stripe.com/api/include_dependent_response_values
+            - generic [ref=e65]: Include-dependent response values (API v2)
+          - link "Metadata" [ref=e68] [cursor=pointer]:
+            - /url: https://docs.stripe.com/api/metadata
+            - generic [ref=e69]: Metadata
+          - link "Pagination" [ref=e72] [cursor=pointer]:
+            - /url: https://docs.stripe.com/api/pagination
+            - generic [ref=e73]: Pagination
+          - link "Request IDs" [ref=e76] [cursor=pointer]:
+            - /url: https://docs.stripe.com/api/request_ids
+            - generic [ref=e77]: Request IDs
+          - link "Connected Accounts" [ref=e80] [cursor=pointer]:
+            - /url: https://docs.stripe.com/api/connected-accounts
+            - generic [ref=e81]: Connected Accounts
+          - link "Versioning" [ref=e84] [cursor=pointer]:
+            - /url: https://docs.stripe.com/api/versioning
+            - generic [ref=e85]: Versioning
+        - generic [ref=e86]:
+          - generic "Core Resources" [ref=e87] [cursor=pointer]:
+            - generic [ref=e88]: Core Resources
+            - img "Dropdown open" [ref=e89]
+          - list [ref=e91]:
+            - link "Accountsv2" [ref=e94] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/v2/core/accounts
+              - generic [ref=e95]: Accountsv2
+            - link "Account Linksv2" [ref=e98] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/v2/core/account-links
+              - generic [ref=e99]: Account Linksv2
+            - link "Account Tokensv2" [ref=e102] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/v2/core/account-tokens
+              - generic [ref=e103]: Account Tokensv2
+            - link "Balance" [ref=e106] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/balance
+              - generic [ref=e107]: Balance
+            - link "Balance Transactions" [ref=e110] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/balance_transactions
+              - generic [ref=e111]: Balance Transactions
+            - link "Charges" [ref=e114] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/charges
+              - generic [ref=e115]: Charges
+            - link "Customers" [ref=e118] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/customers
+              - generic [ref=e119]: Customers
+            - link "Customer Session" [ref=e122] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/customer_sessions
+              - generic [ref=e123]: Customer Session
+            - link "Disputes" [ref=e126] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/disputes
+              - generic [ref=e127]: Disputes
+            - link "Events" [ref=e130] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/events
+              - generic [ref=e131]: Events
+            - link "Eventsv2" [ref=e134] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/v2/core/events
+              - generic [ref=e135]: Eventsv2
+            - link "Event Destinationsv2" [ref=e138] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/v2/core/event-destinations
+              - generic [ref=e139]: Event Destinationsv2
+            - link "Files" [ref=e142] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/files
+              - generic [ref=e143]: Files
+            - link "File Links" [ref=e146] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/file_links
+              - generic [ref=e147]: File Links
+            - link "Mandates" [ref=e150] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/mandates
+              - generic [ref=e151]: Mandates
+            - link "Payment Intents" [ref=e154] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/payment_intents
+              - generic [ref=e155]: Payment Intents
+            - link "Personsv2" [ref=e158] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/v2/core/persons
+              - generic [ref=e159]: Personsv2
+            - link "Person Tokensv2" [ref=e162] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/v2/core/person-tokens
+              - generic [ref=e163]: Person Tokensv2
+            - link "Setup Intents" [ref=e166] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/setup_intents
+              - generic [ref=e167]: Setup Intents
+            - link "Setup Attempts" [ref=e170] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/setup_attempts
+              - generic [ref=e171]: Setup Attempts
+            - link "Payouts" [ref=e174] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/payouts
+              - generic [ref=e175]: Payouts
+            - link "Refunds" [ref=e178] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/refunds
+              - generic [ref=e179]: Refunds
+            - link "Confirmation Token" [ref=e182] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/confirmation_tokens
+              - generic [ref=e183]: Confirmation Token
+            - link "Tokens" [ref=e186] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/tokens
+              - generic [ref=e187]: Tokens
+        - generic [ref=e188]:
+          - generic "Payment Methods" [ref=e189] [cursor=pointer]:
+            - generic [ref=e190]: Payment Methods
+            - img "Dropdown open" [ref=e191]
+          - list [ref=e193]:
+            - link "Payment Methods" [ref=e196] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/payment_methods
+              - generic [ref=e197]: Payment Methods
+            - link "Payment Method Configurations" [ref=e200] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/payment_method_configurations
+              - generic [ref=e201]: Payment Method Configurations
+            - link "Payment Method Domains" [ref=e204] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/payment_method_domains
+              - generic [ref=e205]: Payment Method Domains
+            - link "Bank Accounts" [ref=e208] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/customer_bank_accounts
+              - generic [ref=e209]: Bank Accounts
+            - link "Cash Balance" [ref=e212] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/cash_balance
+              - generic [ref=e213]: Cash Balance
+            - link "Cash Balance Transaction" [ref=e216] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/cash_balance_transactions
+              - generic [ref=e217]: Cash Balance Transaction
+            - link "Cards" [ref=e220] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/cards
+              - generic [ref=e221]: Cards
+            - link "Sources" [ref=e224] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/sources
+              - generic [ref=e225]: Sources
+        - generic [ref=e226]:
+          - generic "Products" [ref=e227] [cursor=pointer]:
+            - generic [ref=e228]: Products
+            - img "Dropdown open" [ref=e229]
+          - list [ref=e231]:
+            - generic [ref=e232]:
+              - link "Products" [ref=e234] [cursor=pointer]:
+                - /url: https://docs.stripe.com/api/products
+                - generic [ref=e235]: Products
+              - generic [ref=e236]:
+                - link "The Product object" [ref=e237] [cursor=pointer]:
+                  - /url: https://docs.stripe.com/api/products/object
+                  - generic [ref=e238]: The Product object
+                - link "Create a product" [ref=e239] [cursor=pointer]:
+                  - /url: https://docs.stripe.com/api/products/create
+                  - generic [ref=e240]: Create a product
+                - link "Update a product" [ref=e241] [cursor=pointer]:
+                  - /url: https://docs.stripe.com/api/products/update
+                  - generic [ref=e242]: Update a product
+                - link "Retrieve a product" [ref=e243] [cursor=pointer]:
+                  - /url: https://docs.stripe.com/api/products/retrieve
+                  - generic [ref=e244]: Retrieve a product
+                - link "List all products" [ref=e245] [cursor=pointer]:
+                  - /url: https://docs.stripe.com/api/products/list
+                  - generic [ref=e246]: List all products
+                - link "Delete a product" [ref=e247] [cursor=pointer]:
+                  - /url: https://docs.stripe.com/api/products/delete
+                  - generic [ref=e248]: Delete a product
+                - link "Search products" [ref=e249] [cursor=pointer]:
+                  - /url: https://docs.stripe.com/api/products/search
+                  - generic [ref=e250]: Search products
+            - link "Prices" [ref=e253] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/prices
+              - generic [ref=e254]: Prices
+            - link "Coupons" [ref=e257] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/coupons
+              - generic [ref=e258]: Coupons
+            - link "Promotion Code" [ref=e261] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/promotion_codes
+              - generic [ref=e262]: Promotion Code
+            - link "Discounts" [ref=e265] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/discounts
+              - generic [ref=e266]: Discounts
+            - link "Tax Code" [ref=e269] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/tax_codes
+              - generic [ref=e270]: Tax Code
+            - link "Tax Rate" [ref=e273] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/tax_rates
+              - generic [ref=e274]: Tax Rate
+            - link "Shipping Rates" [ref=e277] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/shipping_rates
+              - generic [ref=e278]: Shipping Rates
+        - generic "Commerce" [ref=e280] [cursor=pointer]:
+          - generic [ref=e281]: Commerce
+          - img "Dropdown closed" [ref=e282]
+        - generic [ref=e284]:
+          - generic "Agentic Commerce" [ref=e285] [cursor=pointer]:
+            - generic [ref=e286]: Agentic Commerce
+            - img "Dropdown open" [ref=e287]
+          - list [ref=e289]:
+            - link "Shared Payment Issued Token" [ref=e292] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/shared-payment/issued-token
+              - generic [ref=e293]: Shared Payment Issued Token
+            - link "Shared Payment Granted Token" [ref=e296] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/shared-payment/granted-token
+              - generic [ref=e297]: Shared Payment Granted Token
+        - generic [ref=e298]:
+          - generic "Checkout" [ref=e299] [cursor=pointer]:
+            - generic [ref=e300]: Checkout
+            - img "Dropdown open" [ref=e301]
+          - list [ref=e303]:
+            - link "Checkout Sessions" [ref=e306] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/checkout/sessions
+              - generic [ref=e307]: Checkout Sessions
+        - generic [ref=e308]:
+          - generic "Payment Links" [ref=e309] [cursor=pointer]:
+            - generic [ref=e310]: Payment Links
+            - img "Dropdown open" [ref=e311]
+          - list [ref=e313]:
+            - link "Payment Link" [ref=e316] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/payment-link
+              - generic [ref=e317]: Payment Link
+        - generic [ref=e318]:
+          - generic "Billing" [ref=e319] [cursor=pointer]:
+            - generic [ref=e320]: Billing
+            - img "Dropdown open" [ref=e321]
+          - list [ref=e323]:
+            - link "Alerts" [ref=e326] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/billing/alert
+              - generic [ref=e327]: Alerts
+            - link "Credit Balance Summary" [ref=e330] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/billing/credit-balance-summary
+              - generic [ref=e331]: Credit Balance Summary
+            - link "Credit Balance Transaction" [ref=e334] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/billing/credit-balance-transaction
+              - generic [ref=e335]: Credit Balance Transaction
+            - link "Credit Grant" [ref=e338] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/billing/credit-grant
+              - generic [ref=e339]: Credit Grant
+            - link "Credit Note" [ref=e342] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/credit_notes
+              - generic [ref=e343]: Credit Note
+            - link "Customer Balance Transaction" [ref=e346] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/customer_balance_transactions
+              - generic [ref=e347]: Customer Balance Transaction
+            - link "Customer Portal Configuration" [ref=e350] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/customer_portal/configurations
+              - generic [ref=e351]: Customer Portal Configuration
+            - link "Customer Portal Session" [ref=e354] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/customer_portal/sessions
+              - generic [ref=e355]: Customer Portal Session
+            - link "Invoices" [ref=e358] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/invoices
+              - generic [ref=e359]: Invoices
+            - link "Invoice Items" [ref=e362] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/invoiceitems
+              - generic [ref=e363]: Invoice Items
+            - link "Invoice Line Item" [ref=e366] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/invoice-line-item
+              - generic [ref=e367]: Invoice Line Item
+            - link "Invoice Payment" [ref=e370] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/invoice-payment
+              - generic [ref=e371]: Invoice Payment
+            - link "Invoice Rendering Templates" [ref=e374] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/invoice-rendering-template
+              - generic [ref=e375]: Invoice Rendering Templates
+            - link "Meters" [ref=e378] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/billing/meter
+              - generic [ref=e379]: Meters
+            - link "Meter Events" [ref=e382] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/billing/meter-event
+              - generic [ref=e383]: Meter Events
+            - link "Meter Event Adjustment" [ref=e386] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/billing/meter-event-adjustment
+              - generic [ref=e387]: Meter Event Adjustment
+            - link "Meter Event Adjustmentsv2" [ref=e390] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/v2/billing/meter-event-adjustments
+              - generic [ref=e391]: Meter Event Adjustmentsv2
+            - link "Meter Event Streamsv2" [ref=e394] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/v2/meter-event-streams
+              - generic [ref=e395]: Meter Event Streamsv2
+            - link "Meter Event Summary" [ref=e398] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/billing/meter-event-summary
+              - generic [ref=e399]: Meter Event Summary
+            - link "Meter Eventsv2" [ref=e402] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/v2/meter-events
+              - generic [ref=e403]: Meter Eventsv2
+            - link "Plans" [ref=e406] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/plans
+              - generic [ref=e407]: Plans
+            - link "Quote" [ref=e410] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/quotes
+              - generic [ref=e411]: Quote
+            - link "Subscriptions" [ref=e414] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/subscriptions
+              - generic [ref=e415]: Subscriptions
+            - link "Subscription Items" [ref=e418] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/subscription_items
+              - generic [ref=e419]: Subscription Items
+            - link "Subscription Schedule" [ref=e422] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/subscription_schedules
+              - generic [ref=e423]: Subscription Schedule
+            - link "Tax IDs" [ref=e426] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/tax_ids
+              - generic [ref=e427]: Tax IDs
+            - link "Test Clocks" [ref=e430] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/test_clocks
+              - generic [ref=e431]: Test Clocks
+        - generic [ref=e432]:
+          - generic "Capital" [ref=e433] [cursor=pointer]:
+            - generic [ref=e434]: Capital
+            - img "Dropdown open" [ref=e435]
+          - list [ref=e437]:
+            - link "Financing Offer" [ref=e440] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/capital/financing_offers
+              - generic [ref=e441]: Financing Offer
+            - link "Financing Summary" [ref=e444] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/capital/financing_summary
+              - generic [ref=e445]: Financing Summary
+        - generic [ref=e446]:
+          - generic "Connect" [ref=e447] [cursor=pointer]:
+            - generic [ref=e448]: Connect
+            - img "Dropdown open" [ref=e449]
+          - list [ref=e451]:
+            - link "Accounts" [ref=e454] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/accounts
+              - generic [ref=e455]: Accounts
+            - link "Login Links" [ref=e458] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/accounts/login_link
+              - generic [ref=e459]: Login Links
+            - link "Account Links" [ref=e462] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/account_links
+              - generic [ref=e463]: Account Links
+            - link "Account Session" [ref=e466] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/account_sessions
+              - generic [ref=e467]: Account Session
+            - link "Application Fees" [ref=e470] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/application_fees
+              - generic [ref=e471]: Application Fees
+            - link "Application Fee Refunds" [ref=e474] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/fee_refunds
+              - generic [ref=e475]: Application Fee Refunds
+            - link "Capabilities" [ref=e478] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/capabilities
+              - generic [ref=e479]: Capabilities
+            - link "Country Specs" [ref=e482] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/country_specs
+              - generic [ref=e483]: Country Specs
+            - link "Balance Settings" [ref=e486] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/balance-settings
+              - generic [ref=e487]: Balance Settings
+            - link "External Bank Accounts" [ref=e490] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/external_accounts
+              - generic [ref=e491]: External Bank Accounts
+            - link "External Account Cards" [ref=e494] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/external_account_cards
+              - generic [ref=e495]: External Account Cards
+            - link "Person" [ref=e498] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/persons
+              - generic [ref=e499]: Person
+            - link "Top-ups" [ref=e502] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/topups
+              - generic [ref=e503]: Top-ups
+            - link "Transfers" [ref=e506] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/transfers
+              - generic [ref=e507]: Transfers
+            - link "Transfer Reversals" [ref=e510] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/transfer_reversals
+              - generic [ref=e511]: Transfer Reversals
+            - link "Secrets" [ref=e514] [cursor=pointer]:
+              - /url: https://docs.stripe.com/api/secret_management
+              - generic [ref=e515]: Secrets
+        - generic "Reserves" [ref=e517] [cursor=pointer]:
+          - generic [ref=e518]: Reserves
+          - img "Dropdown closed" [ref=e519]
+        - generic "Fraud" [ref=e522] [cursor=pointer]:
+          - generic [ref=e523]: Fraud
+          - img "Dropdown closed" [ref=e524]
+        - generic "Issuing" [ref=e527] [cursor=pointer]:
+          - generic [ref=e528]: Issuing
+          - img "Dropdown closed" [ref=e529]
+        - generic "Terminal" [ref=e532] [cursor=pointer]:
+          - generic [ref=e533]: Terminal
+          - img "Dropdown closed" [ref=e534]
+        - generic "Treasury" [ref=e537] [cursor=pointer]:
+          - generic [ref=e538]: Treasury
+          - img "Dropdown closed" [ref=e539]
+        - generic "Payment Records" [ref=e542] [cursor=pointer]:
+          - generic [ref=e543]: Payment Records
+          - img "Dropdown closed" [ref=e544]
+        - generic "Account Evaluation" [ref=e547] [cursor=pointer]:
+          - generic [ref=e548]: Account Evaluation
+          - img "Dropdown closed" [ref=e549]
+        - generic "Entitlements" [ref=e552] [cursor=pointer]:
+          - generic [ref=e553]: Entitlements
+          - img "Dropdown closed" [ref=e554]
+        - generic "Sigma" [ref=e557] [cursor=pointer]:
+          - generic [ref=e558]: Sigma
+          - img "Dropdown closed" [ref=e559]
+        - generic "Reporting" [ref=e562] [cursor=pointer]:
+          - generic [ref=e563]: Reporting
+          - img "Dropdown closed" [ref=e564]
+        - generic "Financial Connections" [ref=e567] [cursor=pointer]:
+          - generic [ref=e568]: Financial Connections
+          - img "Dropdown closed" [ref=e569]
+        - generic "Tax" [ref=e572] [cursor=pointer]:
+          - generic [ref=e573]: Tax
+          - img "Dropdown closed" [ref=e574]
+        - generic "Identity" [ref=e577] [cursor=pointer]:
+          - generic [ref=e578]: Identity
+          - img "Dropdown closed" [ref=e579]
+        - generic "Crypto" [ref=e582] [cursor=pointer]:
+          - generic [ref=e583]: Crypto
+          - img "Dropdown closed" [ref=e584]
+        - generic "Climate" [ref=e587] [cursor=pointer]:
+          - generic [ref=e588]: Climate
+          - img "Dropdown closed" [ref=e589]
+        - generic "Forwarding" [ref=e592] [cursor=pointer]:
+          - generic [ref=e593]: Forwarding
+          - img "Dropdown closed" [ref=e594]
+        - generic "Privacy" [ref=e597] [cursor=pointer]:
+          - generic [ref=e598]: Privacy
+          - img "Dropdown closed" [ref=e599]
+        - generic "Webhooks" [ref=e602] [cursor=pointer]:
+          - generic [ref=e603]: Webhooks
+          - img "Dropdown closed" [ref=e604]
+    - article [ref=e606]:
+      - list [ref=e608]:
+        - listitem [ref=e609]:
+          - button "2026-04-22.dahlia" [ref=e610] [cursor=pointer]:
+            - generic [ref=e611]: 2026-04-22.dahlia
+            - img [ref=e612]
+        - listitem [ref=e614]:
+          - button "API Reference" [ref=e615] [cursor=pointer]:
+            - text: API Reference
+            - img [ref=e616]
+        - listitem [ref=e618]:
+          - link "Docs" [ref=e619] [cursor=pointer]:
+            - /url: /
+        - listitem [ref=e620]:
+          - link "Support" [ref=e621] [cursor=pointer]:
+            - /url: https://support.stripe.com
+        - listitem [ref=e622]:
+          - link "Sign in →" [ref=e623] [cursor=pointer]:
+            - /url: https://dashboard.stripe.com/login?redirect=https%3A%2F%2Fdocs.stripe.com%2Fapi%2Fproducts%2Fsearch
+      - main [ref=e624]:
+        - generic [ref=e625]:
+          - generic [ref=e626]:
+            - generic [ref=e627]:
+              - heading "Products" [level=1] [ref=e628]:
+                - link "Products" [ref=e630] [cursor=pointer]:
+                  - /url: /api/products
+              - toolbar "Actions" [ref=e631]:
+                - generic [ref=e632]:
+                  - generic [ref=e633]:
+                    - button "Ask about this section" [ref=e634] [cursor=pointer]:
+                      - img [ref=e635]
+                      - text: Ask about this section
+                    - separator [ref=e638]
+                  - button "Copy for LLM" [ref=e639] [cursor=pointer]:
+                    - img [ref=e640]
+                    - generic [ref=e643]: Copy for LLM
+                  - separator [ref=e644]
+                  - button "View as Markdown" [ref=e645] [cursor=pointer]:
+                    - img [ref=e647]
+                    - text: View as Markdown
+            - generic [ref=e650]:
+              - generic [ref=e651]:
+                - paragraph [ref=e652]:
+                  - text: Products describe the specific goods or services you offer to your customers. For example, you might offer a Standard and Premium version of your goods or service; each version would be a separate Product. They can be used in conjunction with
+                  - link "Prices" [ref=e653] [cursor=pointer]:
+                    - /url: "#prices"
+                  - text: to configure pricing in Payment Links, Checkout, and Subscriptions.
+                - paragraph [ref=e654]:
+                  - text: "Related guides:"
+                  - link "Set up a subscription" [ref=e655] [cursor=pointer]:
+                    - /url: /billing/subscriptions/set-up-subscription
+                  - text: ","
+                  - link "share a Payment Link" [ref=e656] [cursor=pointer]:
+                    - /url: /payment-links
+                  - text: ","
+                  - link "accept payments with Checkout" [ref=e657] [cursor=pointer]:
+                    - /url: /payments/accept-a-payment#create-product-prices-upfront
+                  - text: ", and more about"
+                  - link "Products and Prices" [ref=e658] [cursor=pointer]:
+                    - /url: /products-prices/overview
+                - generic [ref=e661]:
+                  - text: Was this section helpful?
+                  - generic [ref=e662]:
+                    - button "Yes" [ref=e663] [cursor=pointer]
+                    - button "No" [ref=e664] [cursor=pointer]
+              - list "Endpoints" [ref=e667]:
+                - listitem [ref=e668]:
+                  - link "Create a product" [ref=e669] [cursor=pointer]:
+                    - /url: /api/products/create
+                  - generic [ref=e670]:
+                    - generic [ref=e671]: Create a product
+                    - generic [ref=e673]:
+                      - generic [ref=e674]: POST
+                      - generic [ref=e675]:
+                        - text: /
+                        - text: v1/
+                        - text: products
+                  - img [ref=e677]
+                - listitem [ref=e679]:
+                  - link "Update a product" [ref=e680] [cursor=pointer]:
+                    - /url: /api/products/update
+                  - generic [ref=e681]:
+                    - generic [ref=e682]: Update a product
+                    - generic [ref=e684]:
+                      - generic [ref=e685]: POST
+                      - generic [ref=e686]:
+                        - text: /
+                        - text: v1/
+                        - text: products/
+                        - text: :id
+                  - img [ref=e688]
+                - listitem [ref=e690]:
+                  - link "Retrieve a product" [ref=e691] [cursor=pointer]:
+                    - /url: /api/products/retrieve
+                  - generic [ref=e692]:
+                    - generic [ref=e693]: Retrieve a product
+                    - generic [ref=e695]:
+                      - generic [ref=e696]: GET
+                      - generic [ref=e697]:
+                        - text: /
+                        - text: v1/
+                        - text: products/
+                        - text: :id
+                  - img [ref=e699]
+                - listitem [ref=e701]:
+                  - link "List all products" [ref=e702] [cursor=pointer]:
+                    - /url: /api/products/list
+                  - generic [ref=e703]:
+                    - generic [ref=e704]: List all products
+                    - generic [ref=e706]:
+                      - generic [ref=e707]: GET
+                      - generic [ref=e708]:
+                        - text: /
+                        - text: v1/
+                        - text: products
+                  - img [ref=e710]
+                - listitem [ref=e712]:
+                  - link "Delete a product" [ref=e713] [cursor=pointer]:
+                    - /url: /api/products/delete
+                  - generic [ref=e714]:
+                    - generic [ref=e715]: Delete a product
+                    - generic [ref=e717]:
+                      - generic [ref=e718]: DELETE
+                      - generic [ref=e719]:
+                        - text: /
+                        - text: v1/
+                        - text: products/
+                        - text: :id
+                  - img [ref=e721]
+                - listitem [ref=e723]:
+                  - link "Search products" [ref=e724] [cursor=pointer]:
+                    - /url: /api/products/search
+                  - generic [ref=e725]:
+                    - generic [ref=e726]: Search products
+                    - generic [ref=e728]:
+                      - generic [ref=e729]: GET
+                      - generic [ref=e730]:
+                        - text: /
+                        - text: v1/
+                        - text: products/
+                        - text: search
+                  - img [ref=e732]
+          - separator [ref=e734]
+          - generic [ref=e735]:
+            - generic [ref=e736]:
+              - heading "The Product object" [level=1] [ref=e737]:
+                - link "The Product object" [ref=e739] [cursor=pointer]:
+                  - /url: /api/products/object
+              - toolbar "Actions" [ref=e740]:
+                - generic [ref=e741]:
+                  - generic [ref=e742]:
+                    - button "Ask about this section" [ref=e743] [cursor=pointer]:
+                      - img [ref=e744]
+                      - text: Ask about this section
+                    - separator [ref=e747]
+                  - button "Copy for LLM" [ref=e748] [cursor=pointer]:
+                    - img [ref=e749]
+                    - generic [ref=e752]: Copy for LLM
+                  - separator [ref=e753]
+                  - button "View as Markdown" [ref=e754] [cursor=pointer]:
+                    - img [ref=e756]
+                    - text: View as Markdown
+            - generic [ref=e759]:
+              - generic [ref=e761]:
+                - heading "Attributes" [level=3] [ref=e762]
+                - list [ref=e763]:
+                  - separator [ref=e764]
+                  - listitem [ref=e765]:
+                    - heading "id string" [level=4] [ref=e766]:
+                      - button [ref=e767] [cursor=pointer]:
+                        - img [ref=e768]
+                      - generic [ref=e774]:
+                        - generic [ref=e775]: id
+                        - generic [ref=e776]: string
+                    - paragraph [ref=e778]: Unique identifier for the object.
+                  - separator [ref=e779]
+                  - listitem [ref=e780]:
+                    - heading "active boolean" [level=4] [ref=e781]:
+                      - button [ref=e782] [cursor=pointer]:
+                        - img [ref=e783]
+                      - generic [ref=e789]:
+                        - generic [ref=e790]: active
+                        - generic [ref=e791]: boolean
+                    - paragraph [ref=e793]: Whether the product is currently available for purchase.
+                  - separator [ref=e794]
+                  - listitem [ref=e795]:
+                    - heading "default_price nullable string Expandable" [level=4] [ref=e796]:
+                      - button [ref=e797] [cursor=pointer]:
+                        - img [ref=e798]
+                      - generic [ref=e804]:
+                        - generic [ref=e806]:
+                          - text: default_
+                          - text: price
+                        - generic [ref=e807]: nullable string
+                        - generic [ref=e808] [cursor=pointer]: Expandable
+                    - paragraph [ref=e810]:
+                      - text: The ID of the
+                      - link "Price" [ref=e811] [cursor=pointer]:
+                        - /url: /api/prices
+                      - text: object that is the default price for this product.
+                  - separator [ref=e812]
+                  - listitem [ref=e813]:
+                    - heading "description nullable string" [level=4] [ref=e814]:
+                      - button [ref=e815] [cursor=pointer]:
+                        - img [ref=e816]
+                      - generic [ref=e822]:
+                        - generic [ref=e823]: description
+                        - generic [ref=e824]: nullable string
+                    - paragraph [ref=e826]: The product’s description, meant to be displayable to the customer. Use this field to optionally store a long form explanation of the product being sold for your own rendering purposes.
+                  - separator [ref=e827]
+                  - listitem [ref=e828]:
+                    - heading "metadata object" [level=4] [ref=e829]:
+                      - button [ref=e830] [cursor=pointer]:
+                        - img [ref=e831]
+                      - generic [ref=e837]:
+                        - generic [ref=e838]: metadata
+                        - generic [ref=e839]: object
+                    - paragraph [ref=e841]:
+                      - text: Set of
+                      - link "key-value pairs" [ref=e842] [cursor=pointer]:
+                        - /url: /api/metadata
+                      - text: that you can attach to an object. This can be useful for storing additional information about the object in a structured format.
+                  - separator [ref=e843]
+                  - listitem [ref=e844]:
+                    - heading "name string" [level=4] [ref=e845]:
+                      - button [ref=e846] [cursor=pointer]:
+                        - img [ref=e847]
+                      - generic [ref=e853]:
+                        - generic [ref=e854]: name
+                        - generic [ref=e855]: string
+                    - paragraph [ref=e857]: The product’s name, meant to be displayable to the customer.
+                  - separator [ref=e858]
+                  - listitem [ref=e859]:
+                    - heading "tax_code nullable string Expandable" [level=4] [ref=e860]:
+                      - button [ref=e861] [cursor=pointer]:
+                        - img [ref=e862]
+                      - generic [ref=e868]:
+                        - generic [ref=e870]:
+                          - text: tax_
+                          - text: code
+                        - generic [ref=e871]: nullable string
+                        - generic [ref=e872] [cursor=pointer]: Expandable
+                    - paragraph [ref=e874]:
+                      - text: A
+                      - link "tax code" [ref=e875] [cursor=pointer]:
+                        - /url: /tax/tax-categories
+                      - text: ID.
+                  - separator [ref=e876]
+                  - listitem [ref=e877]:
+                    - heading "tax_details nullable object Preview feature" [level=4] [ref=e878]:
+                      - button [ref=e879] [cursor=pointer]:
+                        - img [ref=e880]
+                      - generic [ref=e886]:
+                        - generic [ref=e888]:
+                          - text: tax_
+                          - text: details
+                        - generic [ref=e889]: nullable object
+                        - generic [ref=e890]: Preview feature
+                    - generic [ref=e891]:
+                      - paragraph [ref=e892]:
+                        - text: Tax details for this product, including the
+                        - link "tax code" [ref=e893] [cursor=pointer]:
+                          - /url: /tax/tax-codes
+                        - text: and an optional performance location.
+                      - button "Show child attributes" [ref=e895] [cursor=pointer]:
+                        - img [ref=e896]
+                        - text: Show child attributes
+                - heading "More attributes Expand all" [level=3] [ref=e898]:
+                  - generic [ref=e899]: More attributes
+                  - button "Expand all" [ref=e901] [cursor=pointer]
+                - list [ref=e902]:
+                  - separator [ref=e903]
+                  - listitem [ref=e904]:
+                    - heading "object string" [level=4] [ref=e905]:
+                      - button [ref=e906] [cursor=pointer]:
+                        - img [ref=e907]
+                      - generic [ref=e911]:
+                        - img [ref=e912] [cursor=pointer]
+                        - generic [ref=e915]:
+                          - generic [ref=e916] [cursor=pointer]: object
+                          - generic [ref=e917]: string
+                  - separator [ref=e918]
+                  - listitem [ref=e919]:
+                    - heading "created timestamp" [level=4] [ref=e920]:
+                      - button [ref=e921] [cursor=pointer]:
+                        - img [ref=e922]
+                      - generic [ref=e926]:
+                        - img [ref=e927] [cursor=pointer]
+                        - generic [ref=e930]:
+                          - generic [ref=e931] [cursor=pointer]: created
+                          - generic [ref=e932]: timestamp
+                  - separator [ref=e933]
+                  - listitem [ref=e934]:
+                    - heading "images array of strings" [level=4] [ref=e935]:
+                      - button [ref=e936] [cursor=pointer]:
+                        - img [ref=e937]
+                      - generic [ref=e941]:
+                        - img [ref=e942] [cursor=pointer]
+                        - generic [ref=e945]:
+                          - generic [ref=e946] [cursor=pointer]: images
+                          - generic [ref=e947]: array of strings
+                  - separator [ref=e948]
+                  - listitem [ref=e949]:
+                    - heading "livemode boolean" [level=4] [ref=e950]:
+                      - button [ref=e951] [cursor=pointer]:
+                        - img [ref=e952]
+                      - generic [ref=e956]:
+                        - img [ref=e957] [cursor=pointer]
+                        - generic [ref=e960]:
+                          - generic [ref=e961] [cursor=pointer]: livemode
+                          - generic [ref=e962]: boolean
+                  - separator [ref=e963]
+                  - listitem [ref=e964]:
+                    - heading "marketing_features array of objects" [level=4] [ref=e965]:
+                      - button [ref=e966] [cursor=pointer]:
+                        - img [ref=e967]
+                      - generic [ref=e971]:
+                        - img [ref=e972] [cursor=pointer]
+                        - generic [ref=e975]:
+                          - generic [ref=e977] [cursor=pointer]:
+                            - text: marketing_
+                            - text: features
+                          - generic [ref=e978]: array of objects
+                  - separator [ref=e979]
+                  - listitem [ref=e980]:
+                    - heading "package_dimensions nullable object" [level=4] [ref=e981]:
+                      - button [ref=e982] [cursor=pointer]:
+                        - img [ref=e983]
+                      - generic [ref=e987]:
+                        - img [ref=e988] [cursor=pointer]
+                        - generic [ref=e991]:
+                          - generic [ref=e993] [cursor=pointer]:
+                            - text: package_
+                            - text: dimensions
+                          - generic [ref=e994]: nullable object
+                  - separator [ref=e995]
+                  - listitem [ref=e996]:
+                    - heading "shippable nullable boolean" [level=4] [ref=e997]:
+                      - button [ref=e998] [cursor=pointer]:
+                        - img [ref=e999]
+                      - generic [ref=e1003]:
+                        - img [ref=e1004] [cursor=pointer]
+                        - generic [ref=e1007]:
+                          - generic [ref=e1008] [cursor=pointer]: shippable
+                          - generic [ref=e1009]: nullable boolean
+                  - separator [ref=e1010]
+                  - listitem [ref=e1011]:
+                    - heading "statement_descriptor nullable string" [level=4] [ref=e1012]:
+                      - button [ref=e1013] [cursor=pointer]:
+                        - img [ref=e1014]
+                      - generic [ref=e1018]:
+                        - img [ref=e1019] [cursor=pointer]
+                        - generic [ref=e1022]:
+                          - generic [ref=e1024] [cursor=pointer]:
+                            - text: statement_
+                            - text: descriptor
+                          - generic [ref=e1025]: nullable string
+                  - separator [ref=e1026]
+                  - listitem [ref=e1027]:
+                    - heading "unit_label nullable string" [level=4] [ref=e1028]:
+                      - button [ref=e1029] [cursor=pointer]:
+                        - img [ref=e1030]
+                      - generic [ref=e1034]:
+                        - img [ref=e1035] [cursor=pointer]
+                        - generic [ref=e1038]:
+                          - generic [ref=e1040] [cursor=pointer]:
+                            - text: unit_
+                            - text: label
+                          - generic [ref=e1041]: nullable string
+                  - separator [ref=e1042]
+                  - listitem [ref=e1043]:
+                    - heading "updated timestamp" [level=4] [ref=e1044]:
+                      - button [ref=e1045] [cursor=pointer]:
+                        - img [ref=e1046]
+                      - generic [ref=e1050]:
+                        - img [ref=e1051] [cursor=pointer]
+                        - generic [ref=e1054]:
+                          - generic [ref=e1055] [cursor=pointer]: updated
+                          - generic [ref=e1056]: timestamp
+                  - separator [ref=e1057]
+                  - listitem [ref=e1058]:
+                    - heading "url nullable string" [level=4] [ref=e1059]:
+                      - button [ref=e1060] [cursor=pointer]:
+                        - img [ref=e1061]
+                      - generic [ref=e1065]:
+                        - img [ref=e1066] [cursor=pointer]
+                        - generic [ref=e1069]:
+                          - generic [ref=e1070] [cursor=pointer]: url
+                          - generic [ref=e1071]: nullable string
+              - generic [ref=e1074]:
+                - generic [ref=e1076]: The Product object
+                - code [ref=e1078]:
+                  - generic [ref=e1080]: "{"
+                  - generic [ref=e1082]:
+                    - text: "\"id\": \""
+                    - button "prod_NWjs8kKbJWmuuc" [ref=e1083] [cursor=pointer]
+                    - text: "\","
+                  - generic [ref=e1085]: "\"object\": \"product\","
+                  - generic [ref=e1087]: "\"active\": true,"
+                  - generic [ref=e1089]: "\"created\": 1678833149,"
+                  - generic [ref=e1091]: "\"default_price\": null,"
+                  - generic [ref=e1093]: "\"description\": null,"
+                  - generic [ref=e1095]: "\"images\": [],"
+                  - generic [ref=e1097]: "\"marketing_features\": [],"
+                  - generic [ref=e1099]: "\"livemode\": false,"
+                  - generic [ref=e1101]: "\"metadata\": {},"
+                  - generic [ref=e1103]: "\"name\": \"Gold Plan\","
+                  - generic [ref=e1105]: "\"package_dimensions\": null,"
+                  - generic [ref=e1107]: "\"shippable\": null,"
+                  - generic [ref=e1109]: "\"statement_descriptor\": null,"
+                  - generic [ref=e1111]: "\"tax_code\": null,"
+                  - generic [ref=e1113]: "\"unit_label\": null,"
+                  - generic [ref=e1115]: "\"updated\": 1678833149,"
+                  - generic [ref=e1117]: "\"url\": null"
+                  - generic [ref=e1119]: "}"
+          - separator [ref=e1120]
+          - generic [ref=e1121]:
+            - generic [ref=e1122]:
+              - heading "Create a product" [level=1] [ref=e1123]:
+                - link "Create a product" [ref=e1125] [cursor=pointer]:
+                  - /url: /api/products/create
+              - toolbar "Actions" [ref=e1126]:
+                - generic [ref=e1127]:
+                  - generic [ref=e1128]:
+                    - button "Ask about this section" [ref=e1129] [cursor=pointer]:
+                      - img [ref=e1130]
+                      - text: Ask about this section
+                    - separator [ref=e1133]
+                  - button "Copy for LLM" [ref=e1134] [cursor=pointer]:
+                    - img [ref=e1135]
+                    - generic [ref=e1138]: Copy for LLM
+                  - separator [ref=e1139]
+                  - button "View as Markdown" [ref=e1140] [cursor=pointer]:
+                    - img [ref=e1142]
+                    - text: View as Markdown
+            - generic [ref=e1145]:
+              - generic [ref=e1147]:
+                - paragraph [ref=e1148]: Creates a new product object.
+                - heading "Parameters" [level=3] [ref=e1149]
+                - list [ref=e1150]:
+                  - separator [ref=e1151]
+                  - listitem [ref=e1152]:
+                    - heading "name string Required" [level=4] [ref=e1153]:
+                      - button [ref=e1154] [cursor=pointer]:
+                        - img [ref=e1155]
+                      - generic [ref=e1161]:
+                        - generic [ref=e1162]: name
+                        - generic [ref=e1163]: string
+                        - generic [ref=e1164]: Required
+                    - paragraph [ref=e1166]: The product’s name, meant to be displayable to the customer.
+                  - separator [ref=e1167]
+                  - listitem [ref=e1168]:
+                    - heading "active boolean" [level=4] [ref=e1169]:
+                      - button [ref=e1170] [cursor=pointer]:
+                        - img [ref=e1171]
+                      - generic [ref=e1177]:
+                        - generic [ref=e1178]: active
+                        - generic [ref=e1179]: boolean
+                    - paragraph [ref=e1181]:
+                      - text: Whether the product is currently available for purchase. Defaults to
+                      - code [ref=e1182]: "true"
+                      - text: .
+                  - separator [ref=e1183]
+                  - listitem [ref=e1184]:
+                    - heading "description string" [level=4] [ref=e1185]:
+                      - button [ref=e1186] [cursor=pointer]:
+                        - img [ref=e1187]
+                      - generic [ref=e1193]:
+                        - generic [ref=e1194]: description
+                        - generic [ref=e1195]: string
+                    - paragraph [ref=e1197]: The product’s description, meant to be displayable to the customer. Use this field to optionally store a long form explanation of the product being sold for your own rendering purposes.
+                  - separator [ref=e1198]
+                  - listitem [ref=e1199]:
+                    - heading "id string" [level=4] [ref=e1200]:
+                      - button [ref=e1201] [cursor=pointer]:
+                        - img [ref=e1202]
+                      - generic [ref=e1208]:
+                        - generic [ref=e1209]: id
+                        - generic [ref=e1210]: string
+                    - paragraph [ref=e1212]: An identifier will be randomly generated by Stripe. You can optionally override this ID, but the ID must be unique across all products in your Stripe account.
+                  - separator [ref=e1213]
+                  - listitem [ref=e1214]:
+                    - heading "metadata object" [level=4] [ref=e1215]:
+                      - button [ref=e1216] [cursor=pointer]:
+                        - img [ref=e1217]
+                      - generic [ref=e1223]:
+                        - generic [ref=e1224]: metadata
+                        - generic [ref=e1225]: object
+                    - paragraph [ref=e1227]:
+                      - text: Set of
+                      - link "key-value pairs" [ref=e1228] [cursor=pointer]:
+                        - /url: /api/metadata
+                      - text: that you can attach to an object. This can be useful for storing additional information about the object in a structured format. Individual keys can be unset by posting an empty value to them. All keys can be unset by posting an empty value to
+                      - code [ref=e1229]: metadata
+                      - text: .
+                  - separator [ref=e1230]
+                  - listitem [ref=e1231]:
+                    - heading "tax_code string Recommended if calculating taxes" [level=4] [ref=e1232]:
+                      - button [ref=e1233] [cursor=pointer]:
+                        - img [ref=e1234]
+                      - generic [ref=e1240]:
+                        - generic [ref=e1242]:
+                          - text: tax_
+                          - text: code
+                        - generic [ref=e1243]: string
+                        - generic [ref=e1244]: Recommended if calculating taxes
+                    - paragraph [ref=e1246]:
+                      - text: A
+                      - link "tax code" [ref=e1247] [cursor=pointer]:
+                        - /url: /tax/tax-categories
+                      - text: ID.
+                  - separator [ref=e1248]
+                  - listitem [ref=e1249]:
+                    - heading "tax_details object Recommended if calculating taxes Preview feature" [level=4] [ref=e1250]:
+                      - button [ref=e1251] [cursor=pointer]:
+                        - img [ref=e1252]
+                      - generic [ref=e1258]:
+                        - generic [ref=e1260]:
+                          - text: tax_
+                          - text: details
+                        - generic [ref=e1261]: object
+                        - generic [ref=e1262]: Recommended if calculating taxes
+                        - generic [ref=e1263]: Preview feature
+                    - generic [ref=e1264]:
+                      - paragraph [ref=e1265]:
+                        - text: Tax details for this product, including the
+                        - link "tax code" [ref=e1266] [cursor=pointer]:
+                          - /url: /tax/tax-codes
+                        - text: and an optional performance location.
+                      - button "Show child parameters" [ref=e1268] [cursor=pointer]:
+                        - img [ref=e1269]
+                        - text: Show child parameters
+                - heading "More parameters Expand all" [level=3] [ref=e1271]:
+                  - generic [ref=e1272]: More parameters
+                  - button "Expand all" [ref=e1274] [cursor=pointer]
+                - list [ref=e1275]:
+                  - separator [ref=e1276]
+                  - listitem [ref=e1277]:
+                    - heading "default_price_data object" [level=4] [ref=e1278]:
+                      - button [ref=e1279] [cursor=pointer]:
+                        - img [ref=e1280]
+                      - generic [ref=e1284]:
+                        - img [ref=e1285] [cursor=pointer]
+                        - generic [ref=e1288]:
+                          - generic [ref=e1290] [cursor=pointer]:
+                            - text: default_
+                            - text: price_
+                            - text: data
+                          - generic [ref=e1291]: object
+                  - separator [ref=e1292]
+                  - listitem [ref=e1293]:
+                    - heading "images array of strings" [level=4] [ref=e1294]:
+                      - button [ref=e1295] [cursor=pointer]:
+                        - img [ref=e1296]
+                      - generic [ref=e1300]:
+                        - img [ref=e1301] [cursor=pointer]
+                        - generic [ref=e1304]:
+                          - generic [ref=e1305] [cursor=pointer]: images
+                          - generic [ref=e1306]: array of strings
+                  - separator [ref=e1307]
+                  - listitem [ref=e1308]:
+                    - heading "marketing_features array of objects" [level=4] [ref=e1309]:
+                      - button [ref=e1310] [cursor=pointer]:
+                        - img [ref=e1311]
+                      - generic [ref=e1315]:
+                        - img [ref=e1316] [cursor=pointer]
+                        - generic [ref=e1319]:
+                          - generic [ref=e1321] [cursor=pointer]:
+                            - text: marketing_
+                            - text: features
+                          - generic [ref=e1322]: array of objects
+                  - separator [ref=e1323]
+                  - listitem [ref=e1324]:
+                    - heading "package_dimensions object" [level=4] [ref=e1325]:
+                      - button [ref=e1326] [cursor=pointer]:
+                        - img [ref=e1327]
+                      - generic [ref=e1331]:
+                        - img [ref=e1332] [cursor=pointer]
+                        - generic [ref=e1335]:
+                          - generic [ref=e1337] [cursor=pointer]:
+                            - text: package_
+                            - text: dimensions
+                          - generic [ref=e1338]: object
+                  - separator [ref=e1339]
+                  - listitem [ref=e1340]:
+                    - heading "shippable boolean" [level=4] [ref=e1341]:
+                      - button [ref=e1342] [cursor=pointer]:
+                        - img [ref=e1343]
+                      - generic [ref=e1347]:
+                        - img [ref=e1348] [cursor=pointer]
+                        - generic [ref=e1351]:
+                          - generic [ref=e1352] [cursor=pointer]: shippable
+                          - generic [ref=e1353]: boolean
+                  - separator [ref=e1354]
+                  - listitem [ref=e1355]:
+                    - heading "statement_descriptor string" [level=4] [ref=e1356]:
+                      - button [ref=e1357] [cursor=pointer]:
+                        - img [ref=e1358]
+                      - generic [ref=e1362]:
+                        - img [ref=e1363] [cursor=pointer]
+                        - generic [ref=e1366]:
+                          - generic [ref=e1368] [cursor=pointer]:
+                            - text: statement_
+                            - text: descriptor
+                          - generic [ref=e1369]: string
+                  - separator [ref=e1370]
+                  - listitem [ref=e1371]:
+                    - heading "unit_label string" [level=4] [ref=e1372]:
+                      - button [ref=e1373] [cursor=pointer]:
+                        - img [ref=e1374]
+                      - generic [ref=e1378]:
+                        - img [ref=e1379] [cursor=pointer]
+                        - generic [ref=e1382]:
+                          - generic [ref=e1384] [cursor=pointer]:
+                            - text: unit_
+                            - text: label
+                          - generic [ref=e1385]: string
+                  - separator [ref=e1386]
+                  - listitem [ref=e1387]:
+                    - heading "url string" [level=4] [ref=e1388]:
+                      - button [ref=e1389] [cursor=pointer]:
+                        - img [ref=e1390]
+                      - generic [ref=e1394]:
+                        - img [ref=e1395] [cursor=pointer]
+                        - generic [ref=e1398]:
+                          - generic [ref=e1399] [cursor=pointer]: url
+                          - generic [ref=e1400]: string
+                - generic [ref=e1401]:
+                  - heading "Returns" [level=3] [ref=e1402]:
+                    - generic [ref=e1403]: Returns
+                  - separator [ref=e1404]
+                  - paragraph [ref=e1405]: Returns a product object if the call succeeded.
+              - generic [ref=e1407]:
+                - generic [ref=e1412]:
+                  - generic [ref=e1413]:
+                    - generic [ref=e1415]:
+                      - generic [ref=e1416]: POST
+                      - generic [ref=e1417]:
+                        - text: /
+                        - text: v1/
+                        - text: products
+                    - generic [ref=e1418]:
+                      - generic [ref=e1419]:
+                        - generic [ref=e1420]: Server-side language
+                        - button "Server-side language" [ref=e1422] [cursor=pointer]:
+                          - generic [ref=e1423]: cURL
+                          - img [ref=e1424]
+                      - button [ref=e1426] [cursor=pointer]:
+                        - img [ref=e1427]
+                      - button [ref=e1430] [cursor=pointer]:
+                        - img [ref=e1431]
+                      - button [ref=e1434] [cursor=pointer]:
+                        - img [ref=e1435]
+                      - button [ref=e2584] [cursor=pointer]:
+                        - img [ref=e2585]
+                  - code [ref=e1439]:
+                    - generic [ref=e1442]: curl https://api.stripe.com/v1/products \
+                    - generic [ref=e1445]:
+                      - text: "-u \""
+                      - generic [ref=e1446]:
+                        - text: sk_test_BQokikJ...2HlWgH4olfQ2
+                        - generic: sk_test_BQokikJOvBiI2HlWgH4olfQ2
+                      - text: :" \
+                    - generic [ref=e1449]: "-d \"name=Gold Plan\""
+                - generic [ref=e1450]:
+                  - generic [ref=e1452]: Response
+                  - code [ref=e1454]:
+                    - generic [ref=e1456]: "{"
+                    - generic [ref=e1458]:
+                      - text: "\"id\": \""
+                      - button "prod_NWjs8kKbJWmuuc" [ref=e1459] [cursor=pointer]
+                      - text: "\","
+                    - generic [ref=e1461]: "\"object\": \"product\","
+                    - generic [ref=e1463]: "\"active\": true,"
+                    - generic [ref=e1465]: "\"created\": 1678833149,"
+                    - generic [ref=e1467]: "\"default_price\": null,"
+                    - generic [ref=e1469]: "\"description\": null,"
+                    - generic [ref=e1471]: "\"images\": [],"
+                    - generic [ref=e1473]: "\"marketing_features\": [],"
+                    - generic [ref=e1475]: "\"livemode\": false,"
+                    - generic [ref=e1477]: "\"metadata\": {},"
+                    - generic [ref=e1479]: "\"name\": \"Gold Plan\","
+                    - generic [ref=e1481]: "\"package_dimensions\": null,"
+                    - generic [ref=e1483]: "\"shippable\": null,"
+                    - generic [ref=e1485]: "\"statement_descriptor\": null,"
+                    - generic [ref=e1487]: "\"tax_code\": null,"
+                    - generic [ref=e1489]: "\"unit_label\": null,"
+                    - generic [ref=e1491]: "\"updated\": 1678833149,"
+                    - generic [ref=e1493]: "\"url\": null"
+                    - generic [ref=e1495]: "}"
+          - separator [ref=e1496]
+          - generic [ref=e1497]:
+            - generic [ref=e1498]:
+              - heading "Update a product" [level=1] [ref=e1499]:
+                - link "Update a product" [ref=e1501] [cursor=pointer]:
+                  - /url: /api/products/update
+              - toolbar "Actions" [ref=e1502]:
+                - generic [ref=e1503]:
+                  - generic [ref=e1504]:
+                    - button "Ask about this section" [ref=e1505] [cursor=pointer]:
+                      - img [ref=e1506]
+                      - text: Ask about this section
+                    - separator [ref=e1509]
+                  - button "Copy for LLM" [ref=e1510] [cursor=pointer]:
+                    - img [ref=e1511]
+                    - generic [ref=e1514]: Copy for LLM
+                  - separator [ref=e1515]
+                  - button "View as Markdown" [ref=e1516] [cursor=pointer]:
+                    - img [ref=e1518]
+                    - text: View as Markdown
+            - generic [ref=e1521]:
+              - generic [ref=e1523]:
+                - paragraph [ref=e1524]: Updates the specific product by setting the values of the parameters passed. Any parameters not provided will be left unchanged.
+                - heading "Parameters" [level=3] [ref=e1525]
+                - list [ref=e1526]:
+                  - separator [ref=e1527]
+                  - listitem [ref=e1528]:
+                    - heading "active boolean" [level=4] [ref=e1529]:
+                      - button [ref=e1530] [cursor=pointer]:
+                        - img [ref=e1531]
+                      - generic [ref=e1537]:
+                        - generic [ref=e1538]: active
+                        - generic [ref=e1539]: boolean
+                    - paragraph [ref=e1541]: Whether the product is available for purchase.
+                  - separator [ref=e1542]
+                  - listitem [ref=e1543]:
+                    - heading "default_price string" [level=4] [ref=e1544]:
+                      - button [ref=e1545] [cursor=pointer]:
+                        - img [ref=e1546]
+                      - generic [ref=e1552]:
+                        - generic [ref=e1554]:
+                          - text: default_
+                          - text: price
+                        - generic [ref=e1555]: string
+                    - paragraph [ref=e1557]:
+                      - text: The ID of the
+                      - link "Price" [ref=e1558] [cursor=pointer]:
+                        - /url: /api/prices
+                      - text: object that is the default price for this product.
+                  - separator [ref=e1559]
+                  - listitem [ref=e1560]:
+                    - heading "description string" [level=4] [ref=e1561]:
+                      - button [ref=e1562] [cursor=pointer]:
+                        - img [ref=e1563]
+                      - generic [ref=e1569]:
+                        - generic [ref=e1570]: description
+                        - generic [ref=e1571]: string
+                    - paragraph [ref=e1573]: The product’s description, meant to be displayable to the customer. Use this field to optionally store a long form explanation of the product being sold for your own rendering purposes.
+                  - separator [ref=e1574]
+                  - listitem [ref=e1575]:
+                    - heading "metadata object" [level=4] [ref=e1576]:
+                      - button [ref=e1577] [cursor=pointer]:
+                        - img [ref=e1578]
+                      - generic [ref=e1584]:
+                        - generic [ref=e1585]: metadata
+                        - generic [ref=e1586]: object
+                    - paragraph [ref=e1588]:
+                      - text: Set of
+                      - link "key-value pairs" [ref=e1589] [cursor=pointer]:
+                        - /url: /api/metadata
+                      - text: that you can attach to an object. This can be useful for storing additional information about the object in a structured format. Individual keys can be unset by posting an empty value to them. All keys can be unset by posting an empty value to
+                      - code [ref=e1590]: metadata
+                      - text: .
+                  - separator [ref=e1591]
+                  - listitem [ref=e1592]:
+                    - heading "name string" [level=4] [ref=e1593]:
+                      - button [ref=e1594] [cursor=pointer]:
+                        - img [ref=e1595]
+                      - generic [ref=e1601]:
+                        - generic [ref=e1602]: name
+                        - generic [ref=e1603]: string
+                    - paragraph [ref=e1605]: The product’s name, meant to be displayable to the customer.
+                  - separator [ref=e1606]
+                  - listitem [ref=e1607]:
+                    - heading "tax_code string Recommended if calculating taxes" [level=4] [ref=e1608]:
+                      - button [ref=e1609] [cursor=pointer]:
+                        - img [ref=e1610]
+                      - generic [ref=e1616]:
+                        - generic [ref=e1618]:
+                          - text: tax_
+                          - text: code
+                        - generic [ref=e1619]: string
+                        - generic [ref=e1620]: Recommended if calculating taxes
+                    - paragraph [ref=e1622]:
+                      - text: A
+                      - link "tax code" [ref=e1623] [cursor=pointer]:
+                        - /url: /tax/tax-categories
+                      - text: ID.
+                  - separator [ref=e1624]
+                  - listitem [ref=e1625]:
+                    - heading "tax_details object Recommended if calculating taxes Preview feature" [level=4] [ref=e1626]:
+                      - button [ref=e1627] [cursor=pointer]:
+                        - img [ref=e1628]
+                      - generic [ref=e1634]:
+                        - generic [ref=e1636]:
+                          - text: tax_
+                          - text: details
+                        - generic [ref=e1637]: object
+                        - generic [ref=e1638]: Recommended if calculating taxes
+                        - generic [ref=e1639]: Preview feature
+                    - generic [ref=e1640]:
+                      - paragraph [ref=e1641]:
+                        - text: Tax details for this product, including the
+                        - link "tax code" [ref=e1642] [cursor=pointer]:
+                          - /url: /tax/tax-codes
+                        - text: and an optional performance location.
+                      - button "Show child parameters" [ref=e1644] [cursor=pointer]:
+                        - img [ref=e1645]
+                        - text: Show child parameters
+                - heading "More parameters Expand all" [level=3] [ref=e1647]:
+                  - generic [ref=e1648]: More parameters
+                  - button "Expand all" [ref=e1650] [cursor=pointer]
+                - list [ref=e1651]:
+                  - separator [ref=e1652]
+                  - listitem [ref=e1653]:
+                    - heading "images array of strings" [level=4] [ref=e1654]:
+                      - button [ref=e1655] [cursor=pointer]:
+                        - img [ref=e1656]
+                      - generic [ref=e1660]:
+                        - img [ref=e1661] [cursor=pointer]
+                        - generic [ref=e1664]:
+                          - generic [ref=e1665] [cursor=pointer]: images
+                          - generic [ref=e1666]: array of strings
+                  - separator [ref=e1667]
+                  - listitem [ref=e1668]:
+                    - heading "marketing_features array of objects" [level=4] [ref=e1669]:
+                      - button [ref=e1670] [cursor=pointer]:
+                        - img [ref=e1671]
+                      - generic [ref=e1675]:
+                        - img [ref=e1676] [cursor=pointer]
+                        - generic [ref=e1679]:
+                          - generic [ref=e1681] [cursor=pointer]:
+                            - text: marketing_
+                            - text: features
+                          - generic [ref=e1682]: array of objects
+                  - separator [ref=e1683]
+                  - listitem [ref=e1684]:
+                    - heading "package_dimensions object" [level=4] [ref=e1685]:
+                      - button [ref=e1686] [cursor=pointer]:
+                        - img [ref=e1687]
+                      - generic [ref=e1691]:
+                        - img [ref=e1692] [cursor=pointer]
+                        - generic [ref=e1695]:
+                          - generic [ref=e1697] [cursor=pointer]:
+                            - text: package_
+                            - text: dimensions
+                          - generic [ref=e1698]: object
+                  - separator [ref=e1699]
+                  - listitem [ref=e1700]:
+                    - heading "shippable boolean" [level=4] [ref=e1701]:
+                      - button [ref=e1702] [cursor=pointer]:
+                        - img [ref=e1703]
+                      - generic [ref=e1707]:
+                        - img [ref=e1708] [cursor=pointer]
+                        - generic [ref=e1711]:
+                          - generic [ref=e1712] [cursor=pointer]: shippable
+                          - generic [ref=e1713]: boolean
+                  - separator [ref=e1714]
+                  - listitem [ref=e1715]:
+                    - heading "statement_descriptor string" [level=4] [ref=e1716]:
+                      - button [ref=e1717] [cursor=pointer]:
+                        - img [ref=e1718]
+                      - generic [ref=e1722]:
+                        - img [ref=e1723] [cursor=pointer]
+                        - generic [ref=e1726]:
+                          - generic [ref=e1728] [cursor=pointer]:
+                            - text: statement_
+                            - text: descriptor
+                          - generic [ref=e1729]: string
+                  - separator [ref=e1730]
+                  - listitem [ref=e1731]:
+                    - heading "unit_label string" [level=4] [ref=e1732]:
+                      - button [ref=e1733] [cursor=pointer]:
+                        - img [ref=e1734]
+                      - generic [ref=e1738]:
+                        - img [ref=e1739] [cursor=pointer]
+                        - generic [ref=e1742]:
+                          - generic [ref=e1744] [cursor=pointer]:
+                            - text: unit_
+                            - text: label
+                          - generic [ref=e1745]: string
+                  - separator [ref=e1746]
+                  - listitem [ref=e1747]:
+                    - heading "url string" [level=4] [ref=e1748]:
+                      - button [ref=e1749] [cursor=pointer]:
+                        - img [ref=e1750]
+                      - generic [ref=e1754]:
+                        - img [ref=e1755] [cursor=pointer]
+                        - generic [ref=e1758]:
+                          - generic [ref=e1759] [cursor=pointer]: url
+                          - generic [ref=e1760]: string
+                - generic [ref=e1761]:
+                  - heading "Returns" [level=3] [ref=e1762]:
+                    - generic [ref=e1763]: Returns
+                  - separator [ref=e1764]
+                  - paragraph [ref=e1765]: Returns the product object if the update succeeded.
+              - generic [ref=e1767]:
+                - generic [ref=e1772]:
+                  - generic [ref=e1773]:
+                    - generic [ref=e1775]:
+                      - generic [ref=e1776]: POST
+                      - generic [ref=e1777]:
+                        - text: /
+                        - text: v1/
+                        - text: products/
+                        - text: :id
+                    - generic [ref=e1778]:
+                      - generic [ref=e1779]:
+                        - generic [ref=e1780]: Server-side language
+                        - button "Server-side language" [ref=e1782] [cursor=pointer]:
+                          - generic [ref=e1783]: cURL
+                          - img [ref=e1784]
+                      - button [ref=e1786] [cursor=pointer]:
+                        - img [ref=e1787]
+                      - button [ref=e1790] [cursor=pointer]:
+                        - img [ref=e1791]
+                      - button [ref=e1794] [cursor=pointer]:
+                        - img [ref=e1795]
+                      - button [ref=e2587] [cursor=pointer]:
+                        - img [ref=e2588]
+                  - code [ref=e1799]:
+                    - generic [ref=e1802]:
+                      - text: curl https://api.stripe.com/v1/products/
+                      - 'button "{{PRODUCT_ID}}" [ref=e1803] [cursor=pointer]'
+                      - text: \
+                    - generic [ref=e1806]:
+                      - text: "-u \""
+                      - generic [ref=e1807]:
+                        - text: sk_test_BQokikJ...2HlWgH4olfQ2
+                        - generic: sk_test_BQokikJOvBiI2HlWgH4olfQ2
+                      - text: :" \
+                    - generic [ref=e1810]: "-d \"metadata[order_id]=6735\""
+                - generic [ref=e1811]:
+                  - generic [ref=e1813]: Response
+                  - code [ref=e1815]:
+                    - generic [ref=e1817]: "{"
+                    - generic [ref=e1819]:
+                      - text: "\"id\": \""
+                      - button "prod_NWjs8kKbJWmuuc" [ref=e1820] [cursor=pointer]
+                      - text: "\","
+                    - generic [ref=e1822]: "\"object\": \"product\","
+                    - generic [ref=e1824]: "\"active\": true,"
+                    - generic [ref=e1826]: "\"created\": 1678833149,"
+                    - generic [ref=e1828]: "\"default_price\": null,"
+                    - generic [ref=e1830]: "\"description\": null,"
+                    - generic [ref=e1832]: "\"images\": [],"
+                    - generic [ref=e1834]: "\"marketing_features\": [],"
+                    - generic [ref=e1836]: "\"livemode\": false,"
+                    - generic [ref=e1838]: "\"metadata\": {"
+                    - generic [ref=e1840]: "\"order_id\": \"6735\""
+                    - generic [ref=e1842]: "},"
+                    - generic [ref=e1844]: "\"name\": \"Gold Plan\","
+                    - generic [ref=e1846]: "\"package_dimensions\": null,"
+                    - generic [ref=e1848]: "\"shippable\": null,"
+                    - generic [ref=e1850]: "\"statement_descriptor\": null,"
+                    - generic [ref=e1852]: "\"tax_code\": null,"
+                    - generic [ref=e1854]: "\"unit_label\": null,"
+                    - generic [ref=e1856]: "\"updated\": 1678833149,"
+                    - generic [ref=e1858]: "\"url\": null"
+                    - generic [ref=e1860]: "}"
+          - separator [ref=e1861]
+          - generic [ref=e1862]:
+            - generic [ref=e1863]:
+              - heading "Retrieve a product" [level=1] [ref=e1864]:
+                - link "Retrieve a product" [ref=e1866] [cursor=pointer]:
+                  - /url: /api/products/retrieve
+              - toolbar "Actions" [ref=e1867]:
+                - generic [ref=e1868]:
+                  - generic [ref=e1869]:
+                    - button "Ask about this section" [ref=e1870] [cursor=pointer]:
+                      - img [ref=e1871]
+                      - text: Ask about this section
+                    - separator [ref=e1874]
+                  - button "Copy for LLM" [ref=e1875] [cursor=pointer]:
+                    - img [ref=e1876]
+                    - generic [ref=e1879]: Copy for LLM
+                  - separator [ref=e1880]
+                  - button "View as Markdown" [ref=e1881] [cursor=pointer]:
+                    - img [ref=e1883]
+                    - text: View as Markdown
+            - generic [ref=e1886]:
+              - generic [ref=e1888]:
+                - paragraph [ref=e1889]: Retrieves the details of an existing product. Supply the unique product ID from either a product creation request or the product list, and Stripe will return the corresponding product information.
+                - heading "Parameters" [level=3] [ref=e1890]
+                - separator [ref=e1891]
+                - paragraph [ref=e1892]: No parameters.
+                - generic [ref=e1893]:
+                  - heading "Returns" [level=3] [ref=e1894]:
+                    - generic [ref=e1895]: Returns
+                  - separator [ref=e1896]
+                  - paragraph [ref=e1897]: Returns a product object if a valid identifier was provided.
+              - generic [ref=e1899]:
+                - generic [ref=e1904]:
+                  - generic [ref=e1905]:
+                    - generic [ref=e1907]:
+                      - generic [ref=e1908]: GET
+                      - generic [ref=e1909]:
+                        - text: /
+                        - text: v1/
+                        - text: products/
+                        - text: :id
+                    - generic [ref=e1910]:
+                      - generic [ref=e1911]:
+                        - generic [ref=e1912]: Server-side language
+                        - button "Server-side language" [ref=e1914] [cursor=pointer]:
+                          - generic [ref=e1915]: cURL
+                          - img [ref=e1916]
+                      - button [ref=e1918] [cursor=pointer]:
+                        - img [ref=e1919]
+                      - button [ref=e1922] [cursor=pointer]:
+                        - img [ref=e1923]
+                      - button [ref=e1926] [cursor=pointer]:
+                        - img [ref=e1927]
+                      - button [ref=e2590] [cursor=pointer]:
+                        - img [ref=e2591]
+                  - code [ref=e1931]:
+                    - generic [ref=e1934]:
+                      - text: curl https://api.stripe.com/v1/products/
+                      - 'button "{{PRODUCT_ID}}" [ref=e1935] [cursor=pointer]'
+                      - text: \
+                    - generic [ref=e1938]:
+                      - text: "-u \""
+                      - generic [ref=e1939]:
+                        - text: sk_test_BQokikJ...2HlWgH4olfQ2
+                        - generic: sk_test_BQokikJOvBiI2HlWgH4olfQ2
+                      - text: :"
+                - generic [ref=e1940]:
+                  - generic [ref=e1942]: Response
+                  - code [ref=e1944]:
+                    - generic [ref=e1946]: "{"
+                    - generic [ref=e1948]:
+                      - text: "\"id\": \""
+                      - button "prod_NWjs8kKbJWmuuc" [ref=e1949] [cursor=pointer]
+                      - text: "\","
+                    - generic [ref=e1951]: "\"object\": \"product\","
+                    - generic [ref=e1953]: "\"active\": true,"
+                    - generic [ref=e1955]: "\"created\": 1678833149,"
+                    - generic [ref=e1957]: "\"default_price\": null,"
+                    - generic [ref=e1959]: "\"description\": null,"
+                    - generic [ref=e1961]: "\"images\": [],"
+                    - generic [ref=e1963]: "\"marketing_features\": [],"
+                    - generic [ref=e1965]: "\"livemode\": false,"
+                    - generic [ref=e1967]: "\"metadata\": {},"
+                    - generic [ref=e1969]: "\"name\": \"Gold Plan\","
+                    - generic [ref=e1971]: "\"package_dimensions\": null,"
+                    - generic [ref=e1973]: "\"shippable\": null,"
+                    - generic [ref=e1975]: "\"statement_descriptor\": null,"
+                    - generic [ref=e1977]: "\"tax_code\": null,"
+                    - generic [ref=e1979]: "\"unit_label\": null,"
+                    - generic [ref=e1981]: "\"updated\": 1678833149,"
+                    - generic [ref=e1983]: "\"url\": null"
+                    - generic [ref=e1985]: "}"
+          - separator [ref=e1986]
+          - generic [ref=e1987]:
+            - generic [ref=e1988]:
+              - heading "List all products" [level=1] [ref=e1989]:
+                - link "List all products" [ref=e1991] [cursor=pointer]:
+                  - /url: /api/products/list
+              - toolbar "Actions" [ref=e1992]:
+                - generic [ref=e1993]:
+                  - generic [ref=e1994]:
+                    - button "Ask about this section" [ref=e1995] [cursor=pointer]:
+                      - img [ref=e1996]
+                      - text: Ask about this section
+                    - separator [ref=e1999]
+                  - button "Copy for LLM" [ref=e2000] [cursor=pointer]:
+                    - img [ref=e2001]
+                    - generic [ref=e2004]: Copy for LLM
+                  - separator [ref=e2005]
+                  - button "View as Markdown" [ref=e2006] [cursor=pointer]:
+                    - img [ref=e2008]
+                    - text: View as Markdown
+            - generic [ref=e2011]:
+              - generic [ref=e2013]:
+                - paragraph [ref=e2014]: Returns a list of your products. The products are returned sorted by creation date, with the most recently created products appearing first.
+                - heading "Parameters" [level=3] [ref=e2015]
+                - list [ref=e2016]:
+                  - separator [ref=e2017]
+                  - listitem [ref=e2018]:
+                    - heading "active boolean" [level=4] [ref=e2019]:
+                      - button [ref=e2020] [cursor=pointer]:
+                        - img [ref=e2021]
+                      - generic [ref=e2027]:
+                        - generic [ref=e2028]: active
+                        - generic [ref=e2029]: boolean
+                    - paragraph [ref=e2031]:
+                      - text: Only return products that are active or inactive (e.g., pass
+                      - code [ref=e2032]: "false"
+                      - text: to list all inactive products).
+                - heading "More parameters Expand all" [level=3] [ref=e2033]:
+                  - generic [ref=e2034]: More parameters
+                  - button "Expand all" [ref=e2036] [cursor=pointer]
+                - list [ref=e2037]:
+                  - separator [ref=e2038]
+                  - listitem [ref=e2039]:
+                    - heading "created object" [level=4] [ref=e2040]:
+                      - button [ref=e2041] [cursor=pointer]:
+                        - img [ref=e2042]
+                      - generic [ref=e2046]:
+                        - img [ref=e2047] [cursor=pointer]
+                        - generic [ref=e2050]:
+                          - generic [ref=e2051] [cursor=pointer]: created
+                          - generic [ref=e2052]: object
+                  - separator [ref=e2053]
+                  - listitem [ref=e2054]:
+                    - heading "ending_before string" [level=4] [ref=e2055]:
+                      - button [ref=e2056] [cursor=pointer]:
+                        - img [ref=e2057]
+                      - generic [ref=e2061]:
+                        - img [ref=e2062] [cursor=pointer]
+                        - generic [ref=e2065]:
+                          - generic [ref=e2067] [cursor=pointer]:
+                            - text: ending_
+                            - text: before
+                          - generic [ref=e2068]: string
+                  - separator [ref=e2069]
+                  - listitem [ref=e2070]:
+                    - heading "ids array of strings" [level=4] [ref=e2071]:
+                      - button [ref=e2072] [cursor=pointer]:
+                        - img [ref=e2073]
+                      - generic [ref=e2077]:
+                        - img [ref=e2078] [cursor=pointer]
+                        - generic [ref=e2081]:
+                          - generic [ref=e2082] [cursor=pointer]: ids
+                          - generic [ref=e2083]: array of strings
+                  - separator [ref=e2084]
+                  - listitem [ref=e2085]:
+                    - heading "limit integer" [level=4] [ref=e2086]:
+                      - button [ref=e2087] [cursor=pointer]:
+                        - img [ref=e2088]
+                      - generic [ref=e2092]:
+                        - img [ref=e2093] [cursor=pointer]
+                        - generic [ref=e2096]:
+                          - generic [ref=e2097] [cursor=pointer]: limit
+                          - generic [ref=e2098]: integer
+                  - separator [ref=e2099]
+                  - listitem [ref=e2100]:
+                    - heading "shippable boolean" [level=4] [ref=e2101]:
+                      - button [ref=e2102] [cursor=pointer]:
+                        - img [ref=e2103]
+                      - generic [ref=e2107]:
+                        - img [ref=e2108] [cursor=pointer]
+                        - generic [ref=e2111]:
+                          - generic [ref=e2112] [cursor=pointer]: shippable
+                          - generic [ref=e2113]: boolean
+                  - separator [ref=e2114]
+                  - listitem [ref=e2115]:
+                    - heading "starting_after string" [level=4] [ref=e2116]:
+                      - button [ref=e2117] [cursor=pointer]:
+                        - img [ref=e2118]
+                      - generic [ref=e2122]:
+                        - img [ref=e2123] [cursor=pointer]
+                        - generic [ref=e2126]:
+                          - generic [ref=e2128] [cursor=pointer]:
+                            - text: starting_
+                            - text: after
+                          - generic [ref=e2129]: string
+                  - separator [ref=e2130]
+                  - listitem [ref=e2131]:
+                    - heading "url string" [level=4] [ref=e2132]:
+                      - button [ref=e2133] [cursor=pointer]:
+                        - img [ref=e2134]
+                      - generic [ref=e2138]:
+                        - img [ref=e2139] [cursor=pointer]
+                        - generic [ref=e2142]:
+                          - generic [ref=e2143] [cursor=pointer]: url
+                          - generic [ref=e2144]: string
+                - generic [ref=e2145]:
+                  - heading "Returns" [level=3] [ref=e2146]:
+                    - generic [ref=e2147]: Returns
+                  - separator [ref=e2148]
+                  - paragraph [ref=e2149]:
+                    - text: A dictionary with a
+                    - code [ref=e2150]: data
+                    - text: property that contains an array of up to
+                    - code [ref=e2151]: limit
+                    - text: products, starting after product
+                    - code [ref=e2152]:
+                      - text: starting_
+                      - text: after
+                    - text: . Each entry in the array is a separate product object. If no more products are available, the resulting array will be empty.
+              - generic [ref=e2154]:
+                - generic [ref=e2159]:
+                  - generic [ref=e2160]:
+                    - generic [ref=e2162]:
+                      - generic [ref=e2163]: GET
+                      - generic [ref=e2164]:
+                        - text: /
+                        - text: v1/
+                        - text: products
+                    - generic [ref=e2165]:
+                      - generic [ref=e2166]:
+                        - generic [ref=e2167]: Server-side language
+                        - button "Server-side language" [ref=e2169] [cursor=pointer]:
+                          - generic [ref=e2170]: cURL
+                          - img [ref=e2171]
+                      - button [ref=e2173] [cursor=pointer]:
+                        - img [ref=e2174]
+                      - button [ref=e2177] [cursor=pointer]:
+                        - img [ref=e2178]
+                      - button [ref=e2181] [cursor=pointer]:
+                        - img [ref=e2182]
+                      - button [ref=e2593] [cursor=pointer]:
+                        - img [ref=e2594]
+                  - code [ref=e2186]:
+                    - generic [ref=e2189]: curl -G https://api.stripe.com/v1/products \
+                    - generic [ref=e2192]:
+                      - text: "-u \""
+                      - generic [ref=e2193]:
+                        - text: sk_test_BQokikJ...2HlWgH4olfQ2
+                        - generic: sk_test_BQokikJOvBiI2HlWgH4olfQ2
+                      - text: :" \
+                    - generic [ref=e2196]: "-d limit=3"
+                - generic [ref=e2197]:
+                  - generic [ref=e2199]: Response
+                  - code [ref=e2201]:
+                    - generic [ref=e2203]: "{"
+                    - generic [ref=e2205]: "\"object\": \"list\","
+                    - generic [ref=e2207]: "\"url\": \"/v1/products\","
+                    - generic [ref=e2209]: "\"has_more\": false,"
+                    - generic [ref=e2211]: "\"data\": ["
+                    - generic [ref=e2213]: "{"
+                    - generic [ref=e2215]:
+                      - text: "\"id\": \""
+                      - button "prod_NWjs8kKbJWmuuc" [ref=e2216] [cursor=pointer]
+                      - text: "\","
+                    - generic [ref=e2218]: "\"object\": \"product\","
+                    - generic [ref=e2220]: "\"active\": true,"
+                    - generic [ref=e2222]: "\"created\": 1678833149,"
+                    - generic [ref=e2224]: "\"default_price\": null,"
+                    - generic [ref=e2226]: "\"description\": null,"
+                    - generic [ref=e2228]: "\"images\": [],"
+                    - generic [ref=e2230]: "\"marketing_features\": [],"
+                    - generic [ref=e2232]: "\"livemode\": false,"
+                    - generic [ref=e2234]: "\"metadata\": {},"
+                    - generic [ref=e2236]: "\"name\": \"Gold Plan\","
+                    - generic [ref=e2238]: "\"package_dimensions\": null,"
+                    - generic [ref=e2240]: "\"shippable\": null,"
+                    - generic [ref=e2242]: "\"statement_descriptor\": null,"
+                    - generic [ref=e2244]: "\"tax_code\": null,"
+                    - generic [ref=e2246]: "\"unit_label\": null,"
+                    - generic [ref=e2248]: "\"updated\": 1678833149,"
+                    - generic [ref=e2250]: "\"url\": null"
+                    - generic [ref=e2252]: "}"
+                    - generic [ref=e2254]: "]"
+                    - generic [ref=e2256]: "}"
+          - separator [ref=e2257]
+          - generic [ref=e2258]:
+            - generic [ref=e2259]:
+              - heading "Delete a product" [level=1] [ref=e2260]:
+                - link "Delete a product" [ref=e2262] [cursor=pointer]:
+                  - /url: /api/products/delete
+              - toolbar "Actions" [ref=e2263]:
+                - generic [ref=e2264]:
+                  - generic [ref=e2265]:
+                    - button "Ask about this section" [ref=e2266] [cursor=pointer]:
+                      - img [ref=e2267]
+                      - text: Ask about this section
+                    - separator [ref=e2270]
+                  - button "Copy for LLM" [ref=e2271] [cursor=pointer]:
+                    - img [ref=e2272]
+                    - generic [ref=e2275]: Copy for LLM
+                  - separator [ref=e2276]
+                  - button "View as Markdown" [ref=e2277] [cursor=pointer]:
+                    - img [ref=e2279]
+                    - text: View as Markdown
+            - generic [ref=e2282]:
+              - generic [ref=e2284]:
+                - paragraph [ref=e2285]:
+                  - text: Delete a product. Deleting a product is only possible if it has no prices associated with it. Additionally, deleting a product with
+                  - code [ref=e2286]: type=good
+                  - text: is only possible if it has no SKUs associated with it.
+                - heading "Parameters" [level=3] [ref=e2287]
+                - separator [ref=e2288]
+                - paragraph [ref=e2289]: No parameters.
+                - generic [ref=e2290]:
+                  - heading "Returns" [level=3] [ref=e2291]:
+                    - generic [ref=e2292]: Returns
+                  - separator [ref=e2293]
+                  - paragraph [ref=e2294]:
+                    - text: Returns a deleted object on success. Otherwise, this call raises
+                    - link "an error" [ref=e2295] [cursor=pointer]:
+                      - /url: "#errors"
+                    - text: .
+              - generic [ref=e2297]:
+                - generic [ref=e2302]:
+                  - generic [ref=e2303]:
+                    - generic [ref=e2305]:
+                      - generic [ref=e2306]: DELETE
+                      - generic [ref=e2307]:
+                        - text: /
+                        - text: v1/
+                        - text: products/
+                        - text: :id
+                    - generic [ref=e2308]:
+                      - generic [ref=e2309]:
+                        - generic [ref=e2310]: Server-side language
+                        - button "Server-side language" [ref=e2312] [cursor=pointer]:
+                          - generic [ref=e2313]: cURL
+                          - img [ref=e2314]
+                      - button [ref=e2316] [cursor=pointer]:
+                        - img [ref=e2317]
+                      - button [ref=e2320] [cursor=pointer]:
+                        - img [ref=e2321]
+                      - button [ref=e2324] [cursor=pointer]:
+                        - img [ref=e2325]
+                      - button [ref=e2596] [cursor=pointer]:
+                        - img [ref=e2597]
+                  - code [ref=e2329]:
+                    - generic [ref=e2332]:
+                      - text: curl -X DELETE https://api.stripe.com/v1/products/
+                      - 'button "{{PRODUCT_ID}}" [ref=e2333] [cursor=pointer]'
+                      - text: \
+                    - generic [ref=e2336]:
+                      - text: "-u \""
+                      - generic [ref=e2337]:
+                        - text: sk_test_BQokikJ...2HlWgH4olfQ2
+                        - generic: sk_test_BQokikJOvBiI2HlWgH4olfQ2
+                      - text: :"
+                - generic [ref=e2338]:
+                  - generic [ref=e2340]: Response
+                  - code [ref=e2342]:
+                    - generic [ref=e2344]: "{"
+                    - generic [ref=e2346]:
+                      - text: "\"id\": \""
+                      - button "prod_NWjs8kKbJWmuuc" [ref=e2347] [cursor=pointer]
+                      - text: "\","
+                    - generic [ref=e2349]: "\"object\": \"product\","
+                    - generic [ref=e2351]: "\"deleted\": true"
+                    - generic [ref=e2353]: "}"
+          - separator [ref=e2354]
+          - generic [ref=e2355]:
+            - generic [ref=e2356]:
+              - heading "Search products" [level=1] [ref=e2357]:
+                - link "Search products" [ref=e2359] [cursor=pointer]:
+                  - /url: /api/products/search
+              - toolbar "Actions" [ref=e2360]:
+                - generic [ref=e2361]:
+                  - generic [ref=e2362]:
+                    - button "Ask about this section" [ref=e2363] [cursor=pointer]:
+                      - img [ref=e2364]
+                      - text: Ask about this section
+                    - separator [ref=e2367]
+                  - button "Copy for LLM" [ref=e2368] [cursor=pointer]:
+                    - img [ref=e2369]
+                    - generic [ref=e2372]: Copy for LLM
+                  - separator [ref=e2373]
+                  - button "View as Markdown" [ref=e2374] [cursor=pointer]:
+                    - img [ref=e2376]
+                    - text: View as Markdown
+            - generic [ref=e2379]:
+              - generic [ref=e2381]:
+                - paragraph [ref=e2382]:
+                  - text: Search for products you’ve previously created using Stripe’s
+                  - link "Search Query Language" [ref=e2383] [cursor=pointer]:
+                    - /url: /search#search-query-language
+                  - text: . Don’t use search in read-after-write flows where strict consistency is necessary. Under normal operating conditions, data is searchable in less than a minute. Occasionally, propagation of new or updated data can be up to an hour behind during outages. Search functionality is not available to merchants in India.
+                - heading "Parameters" [level=3] [ref=e2384]
+                - list [ref=e2385]:
+                  - separator [ref=e2386]
+                  - listitem [ref=e2387]:
+                    - heading "query string Required" [level=4] [ref=e2388]:
+                      - button [ref=e2389] [cursor=pointer]:
+                        - img [ref=e2390]
+                      - generic [ref=e2396]:
+                        - generic [ref=e2397]: query
+                        - generic [ref=e2398]: string
+                        - generic [ref=e2399]: Required
+                    - paragraph [ref=e2401]:
+                      - text: The search query string. See
+                      - link "search query language" [ref=e2402] [cursor=pointer]:
+                        - /url: /search#search-query-language
+                      - text: and the list of supported
+                      - link "query fields for products" [ref=e2403] [cursor=pointer]:
+                        - /url: /search#query-fields-for-products
+                      - text: .
+                  - separator [ref=e2404]
+                  - listitem [ref=e2405]:
+                    - heading "limit integer" [level=4] [ref=e2406]:
+                      - button [ref=e2407] [cursor=pointer]:
+                        - img [ref=e2408]
+                      - generic [ref=e2414]:
+                        - generic [ref=e2415]: limit
+                        - generic [ref=e2416]: integer
+                    - paragraph [ref=e2418]: A limit on the number of objects to be returned. Limit can range between 1 and 100, and the default is 10.
+                  - separator [ref=e2419]
+                  - listitem [ref=e2420]:
+                    - heading "page string" [level=4] [ref=e2421]:
+                      - button [ref=e2422] [cursor=pointer]:
+                        - img [ref=e2423]
+                      - generic [ref=e2429]:
+                        - generic [ref=e2430]: page
+                        - generic [ref=e2431]: string
+                    - paragraph [ref=e2433]: A cursor for pagination across multiple pages of results. Don’t include this parameter on the first call. Use the next_page value returned in a previous response to request subsequent results.
+                - generic [ref=e2434]:
+                  - heading "Returns" [level=3] [ref=e2435]:
+                    - generic [ref=e2436]: Returns
+                  - separator [ref=e2437]
+                  - paragraph [ref=e2438]:
+                    - text: A dictionary with a
+                    - code [ref=e2439]: data
+                    - text: property that contains an array of up to
+                    - code [ref=e2440]: limit
+                    - text: products. If no objects match the query, the resulting array will be empty. See the related guide on
+                    - link "expanding properties in lists" [ref=e2441] [cursor=pointer]:
+                      - /url: /expand#lists
+                    - text: .
+              - generic [ref=e2443]:
+                - generic [ref=e2448]:
+                  - generic [ref=e2449]:
+                    - generic [ref=e2451]:
+                      - generic [ref=e2452]: GET
+                      - generic [ref=e2453]:
+                        - text: /
+                        - text: v1/
+                        - text: products/
+                        - text: search
+                    - generic [ref=e2454]:
+                      - generic [ref=e2455]:
+                        - generic [ref=e2456]: Server-side language
+                        - button "Server-side language" [ref=e2458] [cursor=pointer]:
+                          - generic [ref=e2459]: cURL
+                          - img [ref=e2460]
+                      - button [ref=e2462] [cursor=pointer]:
+                        - img [ref=e2463]
+                      - button [ref=e2466] [cursor=pointer]:
+                        - img [ref=e2467]
+                      - button [ref=e2470] [cursor=pointer]:
+                        - img [ref=e2471]
+                      - button [ref=e2599] [cursor=pointer]:
+                        - img [ref=e2600]
+                  - code [ref=e2475]:
+                    - generic [ref=e2478]: curl -G https://api.stripe.com/v1/products/search \
+                    - generic [ref=e2481]:
+                      - text: "-u \""
+                      - generic [ref=e2482]:
+                        - text: sk_test_BQokikJ...2HlWgH4olfQ2
+                        - generic: sk_test_BQokikJOvBiI2HlWgH4olfQ2
+                      - text: :" \
+                    - generic [ref=e2485]: "--data-urlencode \"query=active:'true' AND metadata['order_id']:'6735'\""
+                - generic [ref=e2486]:
+                  - generic [ref=e2488]: Response
+                  - code [ref=e2490]:
+                    - generic [ref=e2492]: "{"
+                    - generic [ref=e2494]: "\"object\": \"search_result\","
+                    - generic [ref=e2496]: "\"url\": \"/v1/products/search\","
+                    - generic [ref=e2498]: "\"has_more\": false,"
+                    - generic [ref=e2500]: "\"data\": ["
+                    - generic [ref=e2502]: "{"
+                    - generic [ref=e2504]:
+                      - text: "\"id\": \""
+                      - button "prod_NZOkxQ8eTZEHwN" [ref=e2505] [cursor=pointer]
+                      - text: "\","
+                    - generic [ref=e2507]: "\"object\": \"product\","
+                    - generic [ref=e2509]: "\"active\": true,"
+                    - generic [ref=e2511]: "\"created\": 1679446501,"
+                    - generic [ref=e2513]: "\"default_price\": null,"
+                    - generic [ref=e2515]: "\"description\": null,"
+                    - generic [ref=e2517]: "\"images\": [],"
+                    - generic [ref=e2519]: "\"livemode\": false,"
+                    - generic [ref=e2521]: "\"metadata\": {"
+                    - generic [ref=e2523]: "\"order_id\": \"6735\""
+                    - generic [ref=e2525]: "},"
+                    - generic [ref=e2527]: "\"name\": \"Gold Plan\","
+                    - generic [ref=e2529]: "\"package_dimensions\": null,"
+                    - generic [ref=e2531]: "\"shippable\": null,"
+                    - generic [ref=e2533]: "\"statement_descriptor\": null,"
+                    - generic [ref=e2535]: "\"tax_code\": null,"
+                    - generic [ref=e2537]: "\"unit_label\": null,"
+                    - generic [ref=e2539]: "\"updated\": 1679446501,"
+                    - generic [ref=e2541]: "\"url\": null"
+                    - generic [ref=e2543]: "}"
+                    - generic [ref=e2545]: "]"
+                    - generic [ref=e2547]: "}"
+          - separator [ref=e2548]
+        - list [ref=e2551]:
+          - listitem [ref=e2552]:
+            - img [ref=e2553]
+            - generic [ref=e2555]:
+              - text: Need help?
+              - link "Contact Support" [ref=e2556] [cursor=pointer]:
+                - /url: https://support.stripe.com/
+              - text: .
+          - listitem [ref=e2557]:
+            - img [ref=e2558]
+            - generic [ref=e2561]:
+              - text: Chat with Stripe developers on
+              - link "Discord" [ref=e2562] [cursor=pointer]:
+                - /url: https://stripe.com/go/developer-chat
+              - text: .
+          - listitem [ref=e2563]:
+            - img [ref=e2564]
+            - generic [ref=e2567]:
+              - text: Check out our
+              - link "changelog" [ref=e2568] [cursor=pointer]:
+                - /url: /changelog
+              - text: .
+          - listitem [ref=e2569]:
+            - img [ref=e2570]
+            - generic [ref=e2574]:
+              - text: Questions?
+              - link "Contact Sales" [ref=e2575] [cursor=pointer]:
+                - /url: https://stripe.com/contact/sales
+              - text: .
+          - listitem [ref=e2576]:
+            - img [ref=e2577]
+            - generic [ref=e2580]:
+              - text: LLM?
+              - link "Read llms.txt" [ref=e2581] [cursor=pointer]:
+                - /url: /llms.txt
+              - text: .
+          - listitem [ref=e2582]:
+            - text: Powered by
+            - link "Markdoc" [ref=e2583] [cursor=pointer]:
+              - /url: https://markdoc.dev
+  - button "Show Workbench" [ref=e2605] [cursor=pointer]:
+    - button "Developers" [ref=e2608]:
+      - generic [ref=e2609]:
+        - img [ref=e2611]
+        - generic [ref=e2614]: Developers
+    - button "Open Workbench" [ref=e2618]
+  - generic:
+    - iframe
