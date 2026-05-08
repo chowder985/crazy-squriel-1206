@@ -18,9 +18,15 @@ const MrrChart: React.FC<MrrChartProps> = ({ data }) => {
   const formattedData = useMemo(() => {
     return data.map((point) => ({
       ...point,
+      // Format the display label in UTC. Without the explicit timeZone
+      // option, toLocaleDateString uses the runtime's local timezone, which
+      // shifts UTC-midnight Nov 1 ("2025-11-01T00:00:00Z") to Oct 31 evening
+      // for any locale west of UTC — producing the wrong month label.
+      // Using `year: 'numeric'` (instead of '2-digit') prints "Nov 2025"
+      // rather than "Nov 25", which reads as a day.
       displayMonth: new Date(point.month + 'T00:00:00Z').toLocaleDateString(
         'en-US',
-        { month: 'short', year: '2-digit' }
+        { month: 'short', year: 'numeric', timeZone: 'UTC' }
       ),
     }))
   }, [data])
