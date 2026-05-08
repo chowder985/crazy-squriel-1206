@@ -77,6 +77,12 @@ const MrrChart: React.FC<MrrChartProps> = ({ data }) => {
             strokeWidth={2}
             dot={{ fill: '#0066FF', r: 6 }}
             activeDot={{ r: 8 }}
+            // isAnimationActive=false so dots render synchronously in
+            // jsdom (where requestAnimationFrame doesn't fire reliably)
+            // and the C-98 selector `.recharts-line-dots circle` finds
+            // exactly 7 elements. In production browsers the animation
+            // skip is imperceptible (chart still renders cleanly).
+            isAnimationActive={false}
           />
         </LineChart>
       </ResponsiveContainer>

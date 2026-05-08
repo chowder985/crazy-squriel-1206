@@ -16,6 +16,11 @@ const mockData: MrrDataPoint[] = [
 describe('App component', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Reset window.location.search between tests; the ?simulate=error test
+    // mutates window.location and would otherwise leak into subsequent tests
+    // (causing the "loading" and "empty" tests to short-circuit into error state).
+    delete (window as Partial<Window>).location
+    window.location = { search: '' } as Location
   })
 
   it('should render loading state initially', () => {

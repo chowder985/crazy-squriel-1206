@@ -1,7 +1,27 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import type { ReactElement, ReactNode } from 'react'
 import MrrChart from './MrrChart'
 import type { MrrDataPoint } from '../types'
+
+// Recharts' ResponsiveContainer relies on element measurement that jsdom
+// doesn't simulate end-to-end (ResizeObserver + layout); the chart ends up
+// rendering at zero dimensions and skips dot SVG emission. Replace it with
+// a passthrough that gives explicit width/height so the underlying
+// LineChart actually paints.
+vi.mock('recharts', async () => {
+  const actual = await vi.importActual<typeof import('recharts')>('recharts')
+  const { cloneElement, isValidElement } = await import('react')
+  return {
+    ...actual,
+    ResponsiveContainer: ({ children }: { children: ReactNode }) => {
+      const child = isValidElement(children)
+        ? cloneElement(children as ReactElement, { width: 800, height: 400 })
+        : children
+      return <div style={{ width: 800, height: 400 }}>{child}</div>
+    },
+  }
+})
 
 describe('MrrChart component', () => {
   const mockData: MrrDataPoint[] = [

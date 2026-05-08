@@ -6,6 +6,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: [],
+    setupFiles: ['./src/test-setup.ts'],
+    // tests/ is the Playwright e2e directory — different runner, different
+    // imports (@playwright/test). Vitest must skip it.
+    exclude: ['**/node_modules/**', '**/dist/**', 'tests/**'],
   },
 })
