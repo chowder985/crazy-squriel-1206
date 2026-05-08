@@ -719,7 +719,7 @@ class TestIntegration:
             # Step 2: Run sync to BigQuery with full-refresh
             sync_cmd = [
                 "python",
-                "scripts/sync_stripe_to_bq.py",
+                "sync_stripe_to_bq.py",
                 "--dataset",
                 integration_dataset_id,
                 "--full-refresh",
@@ -823,7 +823,7 @@ class TestIntegration:
             # Step 2: Run sync to BigQuery with full-refresh
             sync_cmd = [
                 "python",
-                "scripts/sync_stripe_to_bq.py",
+                "sync_stripe_to_bq.py",
                 "--dataset",
                 integration_dataset_id,
                 "--full-refresh",
@@ -871,7 +871,7 @@ class TestIntegration:
             # Step 4: Re-sync without changes (incremental mode)
             sync_cmd_incremental = [
                 "python",
-                "scripts/sync_stripe_to_bq.py",
+                "sync_stripe_to_bq.py",
                 "--dataset",
                 integration_dataset_id,
                 "--no-confirm",
