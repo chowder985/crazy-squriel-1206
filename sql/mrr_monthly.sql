@@ -58,17 +58,38 @@
  * (2) Start boundary: start_date <= last_day_of_month(M)
  *     - The subscription must have started on or before the last day of month M
  *
- * (3) Cancel boundary: canceled_at IS NULL OR canceled_at > first_day_of_month(M)
+ * (3) Cancel boundary (Convention A — end-of-month snapshot):
+ *     canceled_at IS NULL OR canceled_at > LAST_DAY(M)
  *     - The subscription must either not be canceled, OR if canceled, the
- *       cancellation occurred AFTER the first day of month M (i.e., the sub
- *       was still active at the start of M and remained active for at least
- *       one day during M).
+ *       cancellation occurred AFTER the LAST DAY of M (i.e., the sub was
+ *       still active at the END of M, not just for some part of it).
  *
- * Rationale: A subscription is "active for ANY day in the month" if it was alive
- * from the first day through the day it was canceled (or until month end if not canceled).
- * If canceled on day 5 of the month, it contributes (active days 1-4). If canceled
- * on the first day of the month, it does NOT contribute (no active days in M;
- * canceled at the boundary).
+ * Rationale: MRR is "the normalized monthly value of active recurring
+ * subscriptions" measured at end-of-month. This is the SaaS industry
+ * standard (Stripe, ProfitWell, ChartMogul) and naturally handles two
+ * edge cases that previous boundary rules did not:
+ *
+ *   - Tier change (Sprint 1 iter-14 cancel-and-recreate): v0 is canceled
+ *     mid-month, v1 is created the same instant. Under end-of-month
+ *     snapshot, only v1 is active at the last day of M, so the customer
+ *     contributes exactly one MRR amount (v1) — no double-count.
+ *
+ *   - Mid-month cancellation: a sub canceled on day 9 of M is not active
+ *     at end-of-M, so contributes $0 to M. The customer's "active
+ *     recurring subscription" terminates in M.
+ *
+ * History:
+ *   - iter-1 used status IN ('active','trialing','past_due') AS the active
+ *     filter, which silently excluded canceled subs from every month they
+ *     had been alive — undercount.
+ *   - iter-2 corrected the status filter to NOT IN ('incomplete',
+ *     'incomplete_expired') and the cancel boundary to
+ *     `canceled_at >= first_day(M)` (active any part of M). That fixed the
+ *     undercount but introduced double-counting for tier-change customers
+ *     in their transition month (17 such customer-months in mrr_dev).
+ *   - iter-3 (this version) tightens the cancel boundary to
+ *     `canceled_at > LAST_DAY(M)` — end-of-month snapshot. No double-count,
+ *     no undercount, aligns with the industry standard MRR definition.
  *
  * =============================================================================
  * TIER-CHANGE HANDLING (Cancel-and-Recreate Pattern)
@@ -224,11 +245,29 @@ monthly_contributions AS (
   FROM month_series m
   CROSS JOIN active_subscriptions s
   WHERE
-    -- Start boundary: subscription started on or before the last day of this month
+    -- Start boundary: subscription started on or before the last day of M.
     s.sub_start_date <= LAST_DAY(m.month_start)
     AND
-    -- Cancel boundary: subscription either not canceled OR canceled on/after first day of month
-    (s.sub_canceled_date IS NULL OR s.sub_canceled_date >= m.month_start)
+    -- Cancel boundary (Sprint 3 iter-3, Convention A): subscription either
+    -- not canceled, OR canceled AFTER the LAST DAY of M. This is the
+    -- end-of-month snapshot semantics — a sub contributes only if it is
+    -- still active at the end of the month, NOT just any part of it.
+    --
+    -- Iter-2 had `>= m.month_start` (active for any part of M). Two issues
+    -- with that:
+    --   (i) Tier-change customers (Sprint 1 iter-14 cancel-and-recreate)
+    --       had BOTH v0 and v1 active during the transition month, causing
+    --       the customer to be double-counted (e.g., v0=$50 + v1=$100 =
+    --       $150 instead of the correct $100).
+    --   (ii) The cancel-month-still-counts behavior diverged from the
+    --       industry standard (Stripe / ProfitWell / ChartMogul all use
+    --       end-of-month snapshot).
+    -- Convention A:
+    --   - Sub canceled on day D inside M => not active LAST_DAY(M) => $0 in M.
+    --   - Tier-change v0 canceled mid-M, v1 created same instant => only v1
+    --     is active at end-of-M => exactly one contribution per customer.
+    --   - Sub canceled on first of M+1 => still active LAST_DAY(M) => counts.
+    (s.sub_canceled_date IS NULL OR s.sub_canceled_date > LAST_DAY(m.month_start))
 ),
 
 final_aggregation AS (

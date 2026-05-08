@@ -212,25 +212,26 @@ class TestMrrMonthlySqlLiveLayer:
         bigquery_client: Optional[bigquery.Client],
         sql_content: str,
     ) -> None:
-        """C-86: Verify canceled customer contributes in cancel month but NOT in the next month.
+        """C-86: Convention A — canceled sub contributes $0 in cancel month.
 
-        Iter-2 fix: the original test did the setup (found a canceled customer,
-        computed cancel_month) but never asserted the actual behavior — only
-        ``len(mrr_data) > 0``. That meant a real MRR-undercount bug (Sprint 3
-        iter-1's ``status IN ('active','trialing','past_due')`` filter, which
-        excluded canceled subs entirely) shipped silently. This rewrite asserts
-        the contractual behavior numerically:
+        Under Convention A (end-of-month snapshot, Sprint 3 iter-3): a sub
+        canceled mid-month is NOT active on the LAST DAY of that month, so
+        it contributes $0 to that month's MRR. It should still contribute
+        in the month BEFORE the cancel month (it was active at the end of
+        that earlier month).
 
-        1. Find a canceled sub whose ``canceled_at`` falls inside our 7-month
-           window.
-        2. Compute that sub's monthly contribution C from
-           ``unit_amount_cents`` / ``interval`` / ``interval_count``.
-        3. Independently compute "MRR for cancel-month EXCLUDING this sub"
-           and "MRR for cancel-month + 1 EXCLUDING this sub" via custom SQL.
-        4. Assert ``sql_mrr[cancel_month] == excl_mrr[cancel_month] + C``
-           — canceled sub IS counted in cancel month, exact-cent.
-        5. Assert ``sql_mrr[cancel_month + 1] == excl_mrr[cancel_month + 1]``
-           — canceled sub is NOT counted in next month, exact-cent.
+        Test logic:
+        1. Find a canceled sub whose cancel month is INSIDE the window AND
+           whose previous month is also inside the window (so we have both
+           cancel_month and prev_month to compare).
+        2. Compute the sub's monthly contribution C.
+        3. Independently recompute MRR for prev_month and cancel_month
+           EXCLUDING this sub.
+        4. Assert sql_mrr[prev_month] == excl[prev_month] + C
+           (sub IS counted in prev_month — was active at end of prev_month
+           since canceled_at > last_day(prev_month)).
+        5. Assert sql_mrr[cancel_month] == excl[cancel_month]
+           (sub is NOT counted in cancel_month — not active at end-of-M).
         """
         from datetime import date as date_cls
         from decimal import Decimal
@@ -247,8 +248,9 @@ class TestMrrMonthlySqlLiveLayer:
         WINDOW_START = date_cls(2025, 11, 1)
         WINDOW_END = date_cls(2026, 5, 1)
 
-        # 1. Find a canceled sub whose cancel month is in the window.
-        #    Pick deterministically (smallest sub id) for test stability.
+        # 1. Find a canceled sub with cancel_month strictly AFTER the first
+        #    month of the window (so prev_month is also inside the window).
+        FIRST_VALID_CANCEL = date_cls(2025, 12, 1)  # cancel_month >= 2025-12 -> prev_month >= 2025-11
         find_canceled_query = f"""
         SELECT
           stripe_subscription_id,
@@ -260,7 +262,7 @@ class TestMrrMonthlySqlLiveLayer:
         FROM `{project}.mrr_dev.subscriptions`
         WHERE status = 'canceled'
           AND canceled_at IS NOT NULL
-          AND DATE(canceled_at) >= '{WINDOW_START.isoformat()}'
+          AND DATE(canceled_at) >= '{FIRST_VALID_CANCEL.isoformat()}'
           AND DATE(canceled_at) < '{WINDOW_END.isoformat()}'
         ORDER BY stripe_subscription_id
         LIMIT 1
@@ -268,18 +270,19 @@ class TestMrrMonthlySqlLiveLayer:
         canceled_rows = list(bigquery_client.query(find_canceled_query).result())
         assert canceled_rows, (
             "Expected at least one canceled subscription with canceled_at "
-            f"inside [{WINDOW_START}, {WINDOW_END}). The C-86 sanity test "
-            "requires a real canceled cohort — re-check mrr_dev seed."
+            f"inside [{FIRST_VALID_CANCEL}, {WINDOW_END}). C-86 needs a sub "
+            "canceled in Dec 2025 or later so we can compare cancel_month "
+            "vs prev_month."
         )
         sub = canceled_rows[0]
         sub_id = sub["stripe_subscription_id"]
         cancel_date: date_cls = sub["cancel_date"]
         cancel_month = cancel_date.replace(day=1)
-        # Compute the next month deterministically (no relativedelta dep).
-        if cancel_month.month == 12:
-            next_month = date_cls(cancel_month.year + 1, 1, 1)
+        # Previous month boundary.
+        if cancel_month.month == 1:
+            prev_month = date_cls(cancel_month.year - 1, 12, 1)
         else:
-            next_month = date_cls(cancel_month.year, cancel_month.month + 1, 1)
+            prev_month = date_cls(cancel_month.year, cancel_month.month - 1, 1)
 
         # 2. Compute the sub's monthly contribution C exactly as the SQL would.
         unit_cents: int = int(sub["unit_amount_cents"])
@@ -293,28 +296,24 @@ class TestMrrMonthlySqlLiveLayer:
             )
         else:
             pytest.fail(
-                f"Unexpected interval {interval!r} on canceled sub {sub_id}; "
-                "C-86 fixture assumes monthly or yearly interval"
+                f"Unexpected interval {interval!r} on canceled sub {sub_id}"
             )
 
         # 3. Run the SQL and snapshot its output.
         full_sql = sql_content.replace("${dataset}", f"{project}.mrr_dev")
         sql_rows = list(bigquery_client.query(full_sql).result())
         sql_mrr = {row["month"]: Decimal(str(row["mrr_amount"])) for row in sql_rows}
-        assert cancel_month in sql_mrr, (
-            f"Cancel month {cancel_month} not in SQL output months {sorted(sql_mrr)}"
-        )
+        for month in (prev_month, cancel_month):
+            assert month in sql_mrr, f"Month {month} missing from SQL output {sorted(sql_mrr)}"
 
-        # 4. Independently recompute MRR for cancel_month and next_month
-        #    EXCLUDING this specific sub, using the same active rule the SQL
-        #    applies. If the SQL is correct:
-        #       sql_mrr[cancel_month] == excl_mrr[cancel_month] + contribution
-        #       sql_mrr[next_month]   == excl_mrr[next_month]
+        # 4. Independently recompute MRR for prev_month and cancel_month
+        #    EXCLUDING this specific sub, using the SAME end-of-month rule
+        #    the SQL now applies: canceled_at > LAST_DAY(M).
         recompute_query = f"""
         WITH months AS (
           SELECT month_start FROM UNNEST([
-            DATE '{cancel_month.isoformat()}',
-            DATE '{next_month.isoformat()}'
+            DATE '{prev_month.isoformat()}',
+            DATE '{cancel_month.isoformat()}'
           ]) AS month_start
         )
         SELECT
@@ -333,37 +332,39 @@ class TestMrrMonthlySqlLiveLayer:
           ON s.stripe_subscription_id != '{sub_id}'
           AND s.status NOT IN ('incomplete', 'incomplete_expired')
           AND DATE(s.start_date) <= LAST_DAY(m.month_start)
-          AND (s.canceled_at IS NULL OR DATE(s.canceled_at) > m.month_start)
+          AND (s.canceled_at IS NULL OR DATE(s.canceled_at) > LAST_DAY(m.month_start))
         GROUP BY m.month_start
         """
         excl_rows = list(bigquery_client.query(recompute_query).result())
         excl_mrr = {row["month_start"]: Decimal(str(row["mrr_excluding"])) for row in excl_rows}
 
-        # 5a. Cancel month: SQL output should equal excl + contribution
-        #     (canceled sub IS counted in the month it canceled in, since
-        #     canceled_at > first_day(M) when the cancel falls inside M).
-        expected_cancel = excl_mrr[cancel_month] + contribution
-        assert sql_mrr[cancel_month] == expected_cancel, (
-            f"C-86 (cancel month): sub {sub_id} canceled on {cancel_date} "
+        # 5a. Prev month: SQL output should equal excl + contribution.
+        # The sub IS active at end-of-prev_month (canceled_at > last_day(prev_month)).
+        expected_prev = excl_mrr[prev_month] + contribution
+        assert sql_mrr[prev_month] == expected_prev, (
+            f"C-86 (prev_month): sub {sub_id} canceled on {cancel_date} "
             f"with monthly contribution ${contribution}. "
-            f"SQL says MRR[{cancel_month}]=${sql_mrr[cancel_month]}; "
-            f"recompute-excluding-this-sub says ${excl_mrr[cancel_month]}; "
-            f"expected SQL = excl + contribution = ${expected_cancel}. "
-            f"Mismatch indicates the canceled sub is NOT being counted in "
-            f"its cancel month (regression of the iter-1 status-filter bug)."
+            f"It should still be counted at the end of {prev_month}. "
+            f"SQL says MRR[{prev_month}]=${sql_mrr[prev_month]}; "
+            f"recompute-excluding-this-sub says ${excl_mrr[prev_month]}; "
+            f"expected SQL = excl + contribution = ${expected_prev}."
         )
 
-        # 5b. Next month: SQL output should equal excl (canceled sub NOT counted).
-        if next_month in sql_mrr:
-            expected_next = excl_mrr[next_month]
-            assert sql_mrr[next_month] == expected_next, (
-                f"C-86 (post-cancel month): sub {sub_id} canceled on {cancel_date}. "
-                f"SQL says MRR[{next_month}]=${sql_mrr[next_month]}; "
-                f"recompute-excluding-this-sub says ${excl_mrr[next_month]}; "
-                f"these must match (canceled sub MUST NOT contribute the "
-                f"month after canceled_at). Mismatch = "
-                f"${sql_mrr[next_month] - expected_next}."
-            )
+        # 5b. Cancel month: SQL output should equal excl (canceled sub NOT counted).
+        # Under Convention A, a sub canceled mid-M is not active end-of-M.
+        expected_cancel = excl_mrr[cancel_month]
+        assert sql_mrr[cancel_month] == expected_cancel, (
+            f"C-86 (cancel_month): sub {sub_id} canceled on {cancel_date}. "
+            f"Under Convention A (end-of-month snapshot), canceled subs do NOT "
+            f"contribute to their cancel month. "
+            f"SQL says MRR[{cancel_month}]=${sql_mrr[cancel_month]}; "
+            f"recompute-excluding-this-sub says ${excl_mrr[cancel_month]}; "
+            f"these must match. Mismatch = "
+            f"${sql_mrr[cancel_month] - expected_cancel}. "
+            f"A non-zero diff means the SQL is still counting the canceled "
+            f"sub in its cancel month — regression of the iter-2 'active any "
+            f"part of M' rule."
+        )
 
     def test_mrr_monthly_tier_change_customer_v0_v1(
         self,
@@ -371,7 +372,38 @@ class TestMrrMonthlySqlLiveLayer:
         bigquery_client: Optional[bigquery.Client],
         sql_content: str,
     ) -> None:
-        """C-87: Verify tier-change customer v0 and v1 are treated as distinct rows."""
+        """C-87: Tier-change customer's transition month counts ONLY v1, not v0+v1.
+
+        Under Convention A (end-of-month snapshot, Sprint 3 iter-3): in the
+        month a tier change happens (v0 canceled mid-M, v1 created same
+        instant), only v1 is active at the LAST DAY of M. Counting both
+        would double-charge the customer for the transition month.
+
+        Iter-3 rewrite: the original test did the setup (found a tier-change
+        customer) but only asserted ``len(rows) == 7`` — same dead-test
+        pattern as the original C-86. This rewrite actually verifies the
+        Convention A behavior numerically against a real customer in
+        ``mrr_dev``.
+
+        Test logic:
+        1. Find a tier-change customer where v0 was canceled in a window
+           month and v1 was created immediately after (same day or close).
+           Use the customer with the smallest stable identifier for
+           reproducibility.
+        2. Compute v0's monthly contribution C0 and v1's monthly contribution C1.
+        3. Identify the transition month M (the month containing v0's
+           canceled_at AND v1's start_date).
+        4. Independently recompute "MRR for M EXCLUDING both v0 and v1".
+        5. Assert sql_mrr[M] == excl[M] + C1 exact-cent
+           (v1 is counted, v0 is NOT — under Convention A v0 is not active
+           at end-of-M).
+        6. Assert sql_mrr[M] != excl[M] + C0 + C1
+           (regression guard: the iter-2 bug counted both, totaling C0+C1
+           in the transition month).
+        """
+        from datetime import date as date_cls
+        from decimal import Decimal
+
         if not should_run_live:
             pytest.skip("Skipped: TEST_MRR_LIVE not set.")
 
@@ -380,31 +412,117 @@ class TestMrrMonthlySqlLiveLayer:
 
         project = bigquery_client.project
 
-        # Find a customer with 2+ subscriptions (tier-change indicator)
+        # 1. Find a tier-change customer whose transition is inside the window.
+        #    "Tier-change" here = same customer has a canceled sub AND a
+        #    later-started sub, with v1.start_date >= v0.canceled_at - 1 day
+        #    (Sprint 1 iter-14 sets them to the same instant).
         find_tier_change_query = f"""
-        SELECT stripe_customer_id
-        FROM `{project}.mrr_dev.subscriptions`
-        GROUP BY stripe_customer_id
-        HAVING COUNT(stripe_subscription_id) >= 2
+        WITH paired AS (
+          SELECT
+            v0.stripe_customer_id,
+            v0.stripe_subscription_id AS v0_sub_id,
+            v1.stripe_subscription_id AS v1_sub_id,
+            DATE(v0.canceled_at)      AS v0_cancel_date,
+            DATE(v1.start_date)       AS v1_start_date,
+            v0.unit_amount_cents      AS v0_unit_cents,
+            v0.`interval`             AS v0_interval,
+            v0.interval_count         AS v0_interval_count,
+            v1.unit_amount_cents      AS v1_unit_cents,
+            v1.`interval`             AS v1_interval,
+            v1.interval_count         AS v1_interval_count
+          FROM `{project}.mrr_dev.subscriptions` v0
+          JOIN `{project}.mrr_dev.subscriptions` v1
+            ON v0.stripe_customer_id = v1.stripe_customer_id
+            AND v0.stripe_subscription_id != v1.stripe_subscription_id
+            AND v0.canceled_at IS NOT NULL
+            AND DATE(v1.start_date) >= DATE(v0.canceled_at)
+            AND DATE(v1.start_date) <= DATE_ADD(DATE(v0.canceled_at), INTERVAL 1 DAY)
+          WHERE DATE(v0.canceled_at) >= '2025-11-01'
+            AND DATE(v0.canceled_at) <= '2026-05-01'
+        )
+        SELECT * FROM paired
+        ORDER BY v0_sub_id
         LIMIT 1
         """
+        rows = list(bigquery_client.query(find_tier_change_query).result())
+        assert rows, (
+            "No tier-change pairs found in mrr_dev.subscriptions where "
+            "v1.start_date is within 1 day of v0.canceled_at and inside the "
+            "Sprint 3 window. Sprint 1 iter-14 should have produced ~17 such "
+            "pairs; if this assertion fires, mrr_dev seed has drifted."
+        )
+        tc = rows[0]
+        v0_sub_id = tc["v0_sub_id"]
+        v1_sub_id = tc["v1_sub_id"]
+        v0_cancel: date_cls = tc["v0_cancel_date"]
+        transition_month = v0_cancel.replace(day=1)
 
-        try:
-            tier_change_rows = list(bigquery_client.query(find_tier_change_query).result())
-        except Exception as e:
-            pytest.skip(f"Could not query for tier-change customers: {e}")
+        def _monthly_contribution(unit_cents: int, interval: str, interval_count: int) -> Decimal:
+            interval_l = interval.lower()
+            if interval_l == "month":
+                return Decimal(unit_cents) / Decimal(interval_count) / Decimal(100)
+            elif interval_l == "year":
+                return Decimal(unit_cents) / Decimal(12) / Decimal(interval_count) / Decimal(100)
+            pytest.fail(f"Unexpected interval {interval!r} on tier-change sub")
 
-        if not tier_change_rows:
-            pytest.skip("No tier-change customers (2+ subs) found in mrr_dev.subscriptions")
+        c0 = _monthly_contribution(int(tc["v0_unit_cents"]), tc["v0_interval"], int(tc["v0_interval_count"]))
+        c1 = _monthly_contribution(int(tc["v1_unit_cents"]), tc["v1_interval"], int(tc["v1_interval_count"]))
 
-        # Execute the MRR query to ensure it doesn't fail on tier-change data
-        sql = sql_content.replace("${dataset}", f"{project}.mrr_dev")
-        try:
-            results = bigquery_client.query(sql)
-            rows = list(results.result())
-            assert len(rows) == 7, f"Expected 7 rows, got {len(rows)}"
-        except Exception as e:
-            pytest.fail(f"Query failed on tier-change data: {e}")
+        # 2. Snapshot SQL output.
+        full_sql = sql_content.replace("${dataset}", f"{project}.mrr_dev")
+        sql_rows = list(bigquery_client.query(full_sql).result())
+        sql_mrr = {row["month"]: Decimal(str(row["mrr_amount"])) for row in sql_rows}
+        assert transition_month in sql_mrr, (
+            f"Transition month {transition_month} not in SQL output {sorted(sql_mrr)}"
+        )
+
+        # 3. Independently recompute MRR for the transition month EXCLUDING
+        #    BOTH v0 and v1, using the Convention A end-of-month rule.
+        recompute_query = f"""
+        SELECT ROUND(COALESCE(SUM(
+          CASE
+            WHEN LOWER(s.`interval`) = 'month'
+              THEN s.unit_amount_cents / s.interval_count / 100.0
+            WHEN LOWER(s.`interval`) = 'year'
+              THEN s.unit_amount_cents / 12 / s.interval_count / 100.0
+            ELSE 0
+          END
+        ), 0), 2) AS mrr_excluding_pair
+        FROM `{project}.mrr_dev.subscriptions` s
+        WHERE s.stripe_subscription_id NOT IN ('{v0_sub_id}', '{v1_sub_id}')
+          AND s.status NOT IN ('incomplete', 'incomplete_expired')
+          AND DATE(s.start_date) <= LAST_DAY(DATE '{transition_month.isoformat()}')
+          AND (s.canceled_at IS NULL
+               OR DATE(s.canceled_at) > LAST_DAY(DATE '{transition_month.isoformat()}'))
+        """
+        excl_pair = Decimal(
+            str(list(bigquery_client.query(recompute_query).result())[0]["mrr_excluding_pair"])
+        )
+
+        # 4. Assert: SQL = excl + c1 (v1 counted, v0 NOT counted).
+        expected_correct = excl_pair + c1
+        bug_value_double_count = excl_pair + c0 + c1
+
+        assert sql_mrr[transition_month] == expected_correct, (
+            f"C-87: tier-change customer cust={tc['stripe_customer_id']} "
+            f"transitioned in {transition_month} "
+            f"(v0={v0_sub_id} ${c0}/mo canceled {v0_cancel}; "
+            f"v1={v1_sub_id} ${c1}/mo started {tc['v1_start_date']}). "
+            f"Convention A requires only v1 to count at end-of-month. "
+            f"SQL says MRR[{transition_month}]=${sql_mrr[transition_month]}; "
+            f"recompute-excluding-pair says ${excl_pair}; "
+            f"expected SQL = excl + c1 = ${expected_correct}; "
+            f"if SQL = excl + c0 + c1 = ${bug_value_double_count}, that's "
+            f"the iter-2 double-count bug regressing."
+        )
+
+        # 5. Regression guard: the iter-2 bug value MUST NOT match.
+        assert sql_mrr[transition_month] != bug_value_double_count, (
+            f"C-87 regression: SQL output (${sql_mrr[transition_month]}) equals "
+            f"the iter-2 double-count bug value (excl + c0 + c1 = "
+            f"${bug_value_double_count}). The fix to Convention A's "
+            f"`canceled_at > LAST_DAY(M)` boundary was reverted or broken."
+        )
 
     def test_mrr_monthly_incomplete_expired_excluded(
         self,
@@ -496,7 +614,7 @@ class TestMrrMonthlySqlLiveLayer:
             JOIN `{project}.mrr_dev.subscriptions` s
               ON s.status NOT IN ('incomplete', 'incomplete_expired')
               AND DATE(s.start_date) <= LAST_DAY(m.month_start)
-              AND (s.canceled_at IS NULL OR DATE(s.canceled_at) > m.month_start)
+              AND (s.canceled_at IS NULL OR DATE(s.canceled_at) > LAST_DAY(m.month_start))
             """
             expected = Decimal(
                 str(list(bigquery_client.query(recompute_q).result())[0]["expected_total"])
